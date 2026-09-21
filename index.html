@@ -77,6 +77,7 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--film);outl
   color:var(--muted); transition:color .15s,background .15s;
 }
 .icobtn:hover{color:var(--ink);background:rgba(237,231,216,.07);}
+.icobtn.on{color:var(--ink);}
 .icobtn svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
 
 /* ---------- Sucher ---------- */
@@ -150,6 +151,7 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--film);outl
 
 /* ---------- Polaroid ---------- */
 .pola{
+  position:relative; isolation:isolate;
   background:linear-gradient(168deg,var(--film),#EAE4D4);
   padding:5.11% 5.11% 0; border-radius:2px;   /* 4,5 mm Rand bei 88 mm Blattbreite */
   box-shadow:0 1px 0 rgba(255,255,255,.5) inset,0 20px 34px -16px rgba(0,0,0,.75);
@@ -170,6 +172,41 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--film);outl
 }
 .pola{container-type:inline-size;}
 .pola .cap em.date{color:#6E7788;}
+
+/* ---------- Spiegelung ----------
+   Liegt als eigene Schicht über dem ganzen Blatt, so wie die glänzende
+   Folie eines echten Sofortbildes über Bild UND Rand läuft. */
+.gloss{
+  position:absolute; inset:0; z-index:4;
+  pointer-events:none; overflow:hidden; border-radius:2px;
+}
+.gloss::before{   /* der wandernde Lichtstreifen */
+  content:""; position:absolute; top:-60%; left:20%;
+  width:46%; height:220%;
+  background:linear-gradient(90deg,
+    transparent,
+    rgba(255,255,255,.09) 26%,
+    rgba(255,255,255,.30) 50%,
+    rgba(255,255,255,.07) 74%,
+    transparent);
+  mix-blend-mode:screen;
+  transform:rotate(19deg) translateX(var(--sheen,0%));
+  transition:transform .13s linear;
+}
+.gloss::after{    /* ruhiger Grundglanz aus der oberen Ecke */
+  content:""; position:absolute; inset:0;
+  background:linear-gradient(157deg,
+    rgba(255,255,255,.13),
+    rgba(255,255,255,.02) 34%,
+    transparent 58%,
+    rgba(255,255,255,.045));
+  mix-blend-mode:screen;
+}
+body.matt .gloss{display:none;}
+
+@media (prefers-reduced-motion:reduce){
+  .gloss::before{transition:none;}
+}
 
 /* Entwicklungs-Animation */
 .dev{position:absolute;inset:0;background:#CFC9BA;z-index:2;}
@@ -254,6 +291,16 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--film);outl
   -webkit-user-select:auto;user-select:auto;
   -webkit-touch-callout:default;
 }
+.seg{
+  display:flex;border:1px solid var(--line);border-radius:2px;overflow:hidden;
+}
+.seg button{
+  font-family:var(--label);font-size:13px;letter-spacing:.13em;text-transform:uppercase;
+  padding:9px 16px;color:var(--muted);transition:background .14s,color .14s;
+}
+.seg button+button{border-left:1px solid var(--line);}
+.seg button.on{background:var(--film);color:#1A1712;font-weight:600;}
+.seg button:not(.on):hover{background:rgba(237,231,216,.07);color:var(--ink);}
 .savehint{
   color:var(--ink);font-size:14.5px;line-height:1.6;text-align:center;max-width:30ch;
 }
@@ -287,6 +334,9 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--film);outl
   <div class="bar">
     <div class="wordmark">Sofortbild</div>
     <div class="counter" id="count">0 Bilder</div>
+    <button class="icobtn" id="gloss" aria-label="Spiegelung ausschalten" title="Spiegelung">
+      <svg viewBox="0 0 24 24" id="glsIcon"><rect x="4" y="3.5" width="16" height="17" rx="1.5"/><path d="M8.5 20.5 15 3.5M12.8 20.5 16.6 10.5"/></svg>
+    </button>
     <button class="icobtn" id="sound" aria-label="Ton ausschalten" title="Ton">
       <svg viewBox="0 0 24 24" id="sndIcon"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg>
     </button>
@@ -302,6 +352,7 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--film);outl
       <div class="pola" id="ejectPola">
         <div class="win"><img alt="" id="ejectImg"><div class="dev" id="ejectDev"></div></div>
         <div class="cap"><em class="date" id="ejectDate"></em></div>
+        <span class="gloss"></span>
       </div>
     </div>
   </div>
@@ -339,6 +390,10 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--film);outl
     </button>
   </div>
   <div class="savebody">
+    <div class="seg" role="group" aria-label="Oberfläche">
+      <button id="segPlain" class="on">Sauber</button>
+      <button id="segShiny">Mit Spiegelung</button>
+    </div>
     <img id="saveImg" alt="Fertiges Sofortbild – lange antippen zum Sichern">
     <div class="savehint">
       Lange auf das Bild tippen → <b>„Zu Fotos hinzufügen“</b>
@@ -383,7 +438,7 @@ function lut(lift,gamma,gain){
   }
   return t;
 }
-var LR=lut(0.055,0.95,0.980), LG=lut(0.050,1.00,0.955), LB=lut(0.085,1.06,0.930);
+var LR=lut(0.075,0.93,0.975), LG=lut(0.072,1.00,0.945), LB=lut(0.115,1.08,0.912);
 
 function grade(cv){
   var ctx=cv.getContext('2d'), w=cv.width, h=cv.height;
@@ -393,11 +448,11 @@ function grade(cv){
     try{
       var bl=document.createElement('canvas'); bl.width=w; bl.height=h;
       var bx=bl.getContext('2d');
-      bx.filter='blur('+(w*0.013)+'px) brightness(1.32) contrast(1.6)';
+      bx.filter='blur('+(w*0.014)+'px) brightness(1.34) contrast(1.6)';
       bx.drawImage(cv,0,0);
       ctx.save();
       ctx.globalCompositeOperation='screen';
-      ctx.globalAlpha=0.17;
+      ctx.globalAlpha=0.21;
       ctx.drawImage(bl,0,0);
       ctx.restore();
     }catch(e){}
@@ -408,18 +463,18 @@ function grade(cv){
   for(i=0;i<d.length;i+=4){
     r=LR[d[i]]; g=LG[d[i+1]]; b=LB[d[i+2]];
     lum=0.299*r+0.587*g+0.114*b;
-    r=lum+(r-lum)*0.90;
-    g=lum+(g-lum)*0.86;
-    b=lum+(b-lum)*0.88;
-    n=(Math.random()-0.5)*13;
+    r=lum+(r-lum)*0.84;
+    g=lum+(g-lum)*0.79;
+    b=lum+(b-lum)*0.82;
+    n=(Math.random()-0.5)*16;
     d[i]=r+n+4; d[i+1]=g+n; d[i+2]=b+n;
   }
   ctx.putImageData(im,0,0);
 
   // Vignette
-  var vg=ctx.createRadialGradient(w/2,h*0.47,w*0.30,w/2,h*0.47,w*0.78);
+  var vg=ctx.createRadialGradient(w/2,h*0.47,w*0.28,w/2,h*0.47,w*0.78);
   vg.addColorStop(0,'rgba(0,0,0,0)');
-  vg.addColorStop(1,'rgba(14,10,24,0.32)');
+  vg.addColorStop(1,'rgba(14,10,24,0.38)');
   ctx.fillStyle=vg; ctx.fillRect(0,0,w,h);
   return cv;
 }
@@ -434,8 +489,36 @@ function square(src,sw,sh,mirror){
   return grade(cv);
 }
 
+/* Die Spiegelung als gemalte Schicht — dieselbe Geometrie wie das CSS-Overlay,
+   nur kräftiger, weil sie hier ein abfotografiertes Bild nachstellt. */
+function sheen(c,W,H){
+  c.save();
+  c.globalCompositeOperation='screen';
+
+  // Ruhiger Grundglanz aus der oberen Ecke
+  var g1=c.createLinearGradient(0,0,W*0.55,H);
+  g1.addColorStop(0,   'rgba(255,255,255,0.19)');
+  g1.addColorStop(0.34,'rgba(255,255,255,0.03)');
+  g1.addColorStop(0.58,'rgba(255,255,255,0)');
+  g1.addColorStop(1,   'rgba(255,255,255,0.07)');
+  c.fillStyle=g1; c.fillRect(0,0,W,H);
+
+  // Der schräge Lichtstreifen
+  c.translate(W*0.43,H*0.50);
+  c.rotate(19*Math.PI/180);
+  var g2=c.createLinearGradient(-W*0.23,0,W*0.23,0);
+  g2.addColorStop(0,   'rgba(255,255,255,0)');
+  g2.addColorStop(0.26,'rgba(255,255,255,0.13)');
+  g2.addColorStop(0.5, 'rgba(255,255,255,0.42)');
+  g2.addColorStop(0.74,'rgba(255,255,255,0.10)');
+  g2.addColorStop(1,   'rgba(255,255,255,0)');
+  c.fillStyle=g2; c.fillRect(-W*0.23,-H*1.10,W*0.46,H*2.20);
+
+  c.restore();
+}
+
 /* Fertiges Polaroid inkl. Papier und Beschriftung — nur zum Sichern */
-function paper(img,dateText,note){
+function paper(img,dateText,note,shiny){
   var W=SIDE+PAD*2, H=PAD+SIDE+FOOT;
   var cv=document.createElement('canvas'); cv.width=W; cv.height=H;
   var c=cv.getContext('2d');
@@ -462,6 +545,8 @@ function paper(img,dateText,note){
     c.fillStyle='#6E7788';
     c.fillText(dateText,W/2,baseY,W*0.84);
   }
+
+  if(shiny) sheen(c,W,H);   /* liegt über allem — es ist die Oberfläche */
   return cv;
 }
 
@@ -646,7 +731,7 @@ function polaNode(rec){
   var d=document.createElement('div');
   d.className='pola';
   d.innerHTML='<div class="win"><img alt="Sofortbild vom '+fmtDate(rec.ts)+'"></div>'+
-              '<div class="cap"><em></em></div>';
+              '<div class="cap"><em></em></div><span class="gloss"></span>';
   d.querySelector('img').src=rec.url;
   var em=d.querySelector('em');
   if(rec.note){ em.textContent=rec.note; }
@@ -723,7 +808,7 @@ function showOne(rec){
   one.appendChild(hint);
 }
 
-var saveURL=null, saveFile=null;
+var saveURL=null, saveFile=null, saveRec=null, saveSrc=null, saveShiny=false;
 
 /* Fertiges Polaroid rendern und zum Sichern anbieten. Das Bild kommt als echtes
    <img> auf den Schirm, damit iOS „Zu Fotos hinzufügen“ anbietet — das Teilen-
@@ -732,21 +817,35 @@ function keepIt(rec,btn){
   btn.textContent='Einen Moment …';
   var img=new Image();
   img.onload=function(){
-    var cv=paper(img,fmtDate(rec.ts),rec.note);
-    cv.toBlob(function(blob){
-      btn.textContent='In Fotos sichern';
-      if(saveURL) URL.revokeObjectURL(saveURL);
-      saveURL=URL.createObjectURL(blob);
-      saveFile=new File([blob],'sofortbild-'+fmtDate(rec.ts).replace(/\./g,'-')+'.jpg',{type:'image/jpeg'});
-
-      $('saveImg').src=saveURL;
-      $('saveShare').hidden=!(navigator.canShare && navigator.canShare({files:[saveFile]}));
-      $('save').hidden=false;
-    },'image/jpeg',0.92);
+    btn.textContent='In Fotos sichern';
+    saveRec=rec; saveSrc=img; saveShiny=false;
+    paintSeg();
+    renderSave();
+    $('save').hidden=false;
   };
   img.onerror=function(){ btn.textContent='In Fotos sichern'; };
   img.src=rec.url;
 }
+
+function renderSave(){
+  if(!saveSrc || !saveRec) return;
+  var stamp=fmtDate(saveRec.ts).replace(/\./g,'-');
+  paper(saveSrc,fmtDate(saveRec.ts),saveRec.note,saveShiny).toBlob(function(blob){
+    if(saveURL) URL.revokeObjectURL(saveURL);
+    saveURL=URL.createObjectURL(blob);
+    saveFile=new File([blob],'sofortbild-'+stamp+(saveShiny?'-spiegelung':'')+'.jpg',{type:'image/jpeg'});
+    $('saveImg').src=saveURL;
+    $('saveShare').hidden=!(navigator.canShare && navigator.canShare({files:[saveFile]}));
+  },'image/jpeg',0.92);
+}
+
+function paintSeg(){
+  $('segPlain').classList.toggle('on',!saveShiny);
+  $('segShiny').classList.toggle('on',saveShiny);
+}
+
+$('segPlain').onclick=function(){ if(!saveShiny) return; saveShiny=false; paintSeg(); renderSave(); };
+$('segShiny').onclick=function(){ if(saveShiny) return;  saveShiny=true;  paintSeg(); renderSave(); };
 
 $('saveBack').onclick=function(){ $('save').hidden=true; };
 
@@ -768,6 +867,56 @@ $('back').onclick=function(){
   if(!$('one').hidden){ showGrid(); return; }
   $('sheet').hidden=true;
 };
+
+/* ---------- Spiegelung ---------- */
+var shine=true, tiltOn=false;
+try{ shine = localStorage.getItem('sofortbild-gloss') !== '0'; }catch(e){}
+
+function paintGloss(){
+  document.body.classList.toggle('matt',!shine);
+  $('gloss').classList.toggle('on',shine);
+  $('gloss').setAttribute('aria-label', shine?'Spiegelung ausschalten':'Spiegelung einschalten');
+  $('glsIcon').innerHTML = shine
+    ? '<rect x="4" y="3.5" width="16" height="17" rx="1.5"/><path d="M8.5 20.5 15 3.5M12.8 20.5 16.6 10.5"/>'
+    : '<rect x="4" y="3.5" width="16" height="17" rx="1.5"/>';
+}
+
+function tilt(e){
+  var g=e.gamma;
+  if(g==null) return;
+  g=Math.max(-40,Math.min(40,g));
+  document.documentElement.style.setProperty('--sheen',(g/40*115)+'%');
+}
+
+/* iOS verlangt für den Neigungssensor eine eigene Erlaubnis, und die darf nur
+   direkt aus einer Berührung heraus erfragt werden. */
+function askTilt(){
+  if(tiltOn || !shine || typeof DeviceOrientationEvent==='undefined') return;
+  if(typeof DeviceOrientationEvent.requestPermission==='function'){
+    DeviceOrientationEvent.requestPermission().then(function(r){
+      if(r==='granted'){ window.addEventListener('deviceorientation',tilt); tiltOn=true; }
+    }).catch(function(){});
+  }else{
+    window.addEventListener('deviceorientation',tilt); tiltOn=true;
+  }
+}
+
+$('gloss').onclick=function(){
+  shine=!shine;
+  try{ localStorage.setItem('sofortbild-gloss', shine?'1':'0'); }catch(e){}
+  paintGloss();
+  if(shine) askTilt();
+};
+
+/* Ohne Neigungssensor folgt der Glanz dem Zeiger */
+if(!('ontouchstart' in window)){
+  document.addEventListener('mousemove',function(e){
+    if(!shine || tiltOn) return;
+    document.documentElement.style.setProperty('--sheen',((e.clientX/window.innerWidth-0.5)*230)+'%');
+  });
+}
+
+paintGloss();
 
 $('sound').onclick=function(){
   sound=!sound;
@@ -804,6 +953,7 @@ $('go').onclick=function(){
     $('intro').hidden=true;
     /* AudioContext braucht diese Geste, sonst bleibt der Auslöser stumm */
     try{ if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){}
+    askTilt();
   }).catch(function(e){
     $('go').textContent='Nochmal versuchen';
     fail(e);
