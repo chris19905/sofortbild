@@ -1,0 +1,792 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Sofortbild</title>
+
+<meta name="theme-color" content="#17150F">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sofortbild">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600&family=Caveat:wght@400;600&display=swap">
+
+<style>
+[hidden]{display:none!important;}
+img{max-width:100%;}
+:root{
+  color-scheme:dark;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+:root{
+  --shell:#17150F;
+  --shell-hi:#241F16;
+  --panel:#201C15;
+  --film:#F4F0E4;
+  --film-edge:#D9D2C0;
+  --ink:#EDE7D8;
+  --muted:#8A8272;
+  --shutter:#C0392B;
+  --shutter-lo:#7E241B;
+  --line:rgba(237,231,216,.13);
+  --label:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --hand:"Caveat","Segoe Script",cursive;
+  --ui:system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+
+*,*::before,*::after{box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  margin:0; background:var(--shell); color:var(--ink);
+  font-family:var(--ui); overflow:hidden;
+  -webkit-user-select:none; user-select:none;
+  -webkit-tap-highlight-color:transparent;
+  overscroll-behavior:none;
+}
+:root{ height:100%; }
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;}
+button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--film);outline-offset:3px;border-radius:4px;}
+
+.app{height:100%;display:flex;flex-direction:column;}
+
+/* ---------- Kopf ---------- */
+.bar{
+  flex:0 0 auto; display:flex; align-items:center; gap:12px;
+  padding:10px 18px 9px; border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg,var(--shell-hi),var(--shell));
+}
+.wordmark{
+  font-family:var(--label); font-weight:600; font-size:17px;
+  letter-spacing:.22em; text-transform:uppercase; margin-right:auto;
+}
+.wordmark span{color:var(--muted);font-weight:400;}
+.counter{
+  font-family:var(--label); font-size:15px; letter-spacing:.14em;
+  color:var(--muted); font-variant-numeric:tabular-nums; text-transform:uppercase;
+}
+.icobtn{
+  width:34px;height:34px;display:grid;place-items:center;border-radius:50%;
+  color:var(--muted); transition:color .15s,background .15s;
+}
+.icobtn:hover{color:var(--ink);background:rgba(237,231,216,.07);}
+.icobtn svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
+
+/* ---------- Sucher ---------- */
+.stage{flex:1 1 auto;min-height:0;display:grid;place-items:center;padding:16px;position:relative;overflow:hidden;}
+.finder{
+  position:relative; width:min(100%,560px); aspect-ratio:1; max-width:100%; max-height:100%;
+  background:#0B0A07; border-radius:3px; overflow:hidden;
+  box-shadow:0 0 0 1px rgba(237,231,216,.10), 0 26px 60px -22px #000 inset, 0 18px 44px -28px #000;
+}
+.finder video{width:100%;height:100%;object-fit:cover;display:block;background:#0B0A07;}
+.finder.mirror video{transform:scaleX(-1);}
+.finder::after{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:radial-gradient(120% 120% at 50% 45%,transparent 52%,rgba(0,0,0,.42));
+}
+/* Sucher-Ecken */
+.corner{position:absolute;width:20px;height:20px;border:1.5px solid rgba(244,240,228,.5);z-index:2;}
+.corner.tl{top:12px;left:12px;border-right:0;border-bottom:0;}
+.corner.tr{top:12px;right:12px;border-left:0;border-bottom:0;}
+.corner.bl{bottom:12px;left:12px;border-right:0;border-top:0;}
+.corner.br{bottom:12px;right:12px;border-left:0;border-top:0;}
+
+.flash{
+  position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:3;
+}
+.flash.fire{animation:pop .42s ease-out;}
+@keyframes pop{0%{opacity:0}6%{opacity:.92}100%{opacity:0}}
+
+/* ---------- Bedienfeld ---------- */
+.deck{
+  flex:0 0 auto; position:relative;
+  background:linear-gradient(180deg,var(--panel),var(--shell));
+  padding:20px 22px calc(20px + env(safe-area-inset-bottom,0px));
+  display:flex; align-items:center; justify-content:space-between; gap:18px;
+}
+.rainbow{position:absolute;top:0;left:0;right:0;height:3px;display:flex;}
+.rainbow i{flex:1;}
+.rainbow i:nth-child(1){background:#1B75BB}
+.rainbow i:nth-child(2){background:#00A550}
+.rainbow i:nth-child(3){background:#FFF200}
+.rainbow i:nth-child(4){background:#F7941E}
+.rainbow i:nth-child(5){background:#ED1C24}
+
+.side{
+  width:58px;display:flex;flex-direction:column;align-items:center;gap:5px;
+  color:var(--muted); transition:color .15s;
+}
+.side:hover{color:var(--ink);}
+.side svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;}
+.side b{font-family:var(--label);font-weight:500;font-size:11px;letter-spacing:.15em;text-transform:uppercase;}
+.side:disabled{opacity:.3;cursor:default;}
+
+.shutter{
+  width:78px;height:78px;border-radius:50%;flex:0 0 auto;
+  background:radial-gradient(circle at 38% 32%,#E05A4C,var(--shutter) 48%,var(--shutter-lo));
+  box-shadow:0 0 0 4px var(--shell),0 0 0 5.5px rgba(237,231,216,.20),0 8px 18px -6px #000;
+  transition:transform .09s ease-out,filter .09s;
+}
+.shutter:active{transform:scale(.93);filter:brightness(.88);}
+.shutter:disabled{filter:grayscale(.55) brightness(.6);transform:scale(.97);cursor:default;}
+
+/* ---------- Auswurf / Entwicklung ---------- */
+.eject{
+  position:absolute; left:50%; top:0; z-index:6; pointer-events:none;
+  width:min(62%,300px); transform:translate(-50%,-102%);
+}
+.eject.run{animation:slide 1.05s cubic-bezier(.22,.9,.3,1) forwards;}
+@keyframes slide{to{transform:translate(-50%,14%)}}
+.eject.tuck{animation:tuck .5s ease-in forwards;}
+@keyframes tuck{to{transform:translate(-50%,14%) scale(.28) translateY(360px);opacity:0}}
+
+/* ---------- Polaroid ---------- */
+.pola{
+  background:linear-gradient(168deg,var(--film),#EAE4D4);
+  padding:5.11% 5.11% 0; border-radius:2px;   /* 4,5 mm Rand bei 88 mm Blattbreite */
+  box-shadow:0 1px 0 rgba(255,255,255,.5) inset,0 20px 34px -16px rgba(0,0,0,.75);
+}
+.pola .win{
+  position:relative; aspect-ratio:1; background:#15130F; overflow:hidden;
+  box-shadow:0 0 0 1px rgba(0,0,0,.22),0 2px 5px rgba(0,0,0,.28) inset;
+}
+.pola .win img{width:100%;height:100%;object-fit:cover;display:block;}
+.pola .cap{
+  height:0; padding-bottom:29.75%; position:relative;  /* 23,5 mm bei 79 mm Bildbreite */
+}
+.pola .cap em{
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  gap:10px; padding:0 8%; font-family:var(--hand); font-style:normal;
+  font-size:clamp(15px,5.2cqw,26px); color:#3B4A63; text-align:center;
+  line-height:1.15; overflow:hidden;
+}
+.pola{container-type:inline-size;}
+.pola .cap em.date{color:#6E7788;}
+
+/* Entwicklungs-Animation */
+.dev{position:absolute;inset:0;background:#CFC9BA;z-index:2;}
+.dev.go{animation:devfade 5s ease-out forwards;}
+@keyframes devfade{0%{opacity:1}22%{opacity:.86}100%{opacity:0}}
+.developing img{animation:devimg 5s ease-out forwards;}
+@keyframes devimg{
+  0%{filter:saturate(0) brightness(1.9) contrast(.28)}
+  25%{filter:saturate(.18) brightness(1.4) contrast(.55)}
+  100%{filter:none}
+}
+
+/* ---------- Galerie ---------- */
+.sheet{
+  position:fixed;inset:0;z-index:20;background:rgba(10,9,6,.96);
+  display:flex;flex-direction:column;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+.sheet .bar{background:none;}
+.sheet .scroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:18px;}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:18px;margin:0 auto;max-width:760px;}
+.grid .pola{cursor:pointer;transition:transform .16s;}
+.grid button:hover .pola{transform:translateY(-3px) rotate(-.6deg);}
+.grid button{display:block;width:100%;}
+
+.empty{
+  max-width:34ch;margin:14vh auto 0;text-align:center;color:var(--muted);
+  font-size:14.5px;line-height:1.6;
+}
+.empty svg{width:40px;height:40px;stroke:currentColor;fill:none;stroke-width:1.3;opacity:.5;margin-bottom:14px;}
+
+/* ---------- Einzelansicht ---------- */
+.one{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:18px;}
+.one .pola{width:min(100%,330px);}
+.tools{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
+.btn{
+  font-family:var(--label);font-size:14.5px;letter-spacing:.14em;text-transform:uppercase;
+  padding:11px 20px;border-radius:2px;border:1px solid var(--line);color:var(--ink);
+  transition:background .15s,border-color .15s;
+}
+.btn:hover{background:rgba(237,231,216,.08);border-color:rgba(237,231,216,.3);}
+.btn.key{background:var(--film);color:#1A1712;border-color:var(--film);font-weight:600;}
+.btn.key:hover{background:#fff;}
+.btn.warn:hover{border-color:var(--shutter);color:#E8796C;background:rgba(192,57,43,.1);}
+.hint{color:var(--muted);font-size:13px;text-align:center;max-width:32ch;line-height:1.55;}
+
+/* ---------- Start & Fehler ---------- */
+.intro{
+  position:fixed;inset:0;z-index:30;background:var(--shell);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:26px;padding:32px 24px;text-align:center;
+}
+.intro .mark{font-family:var(--label);font-size:38px;font-weight:600;letter-spacing:.3em;text-transform:uppercase;text-indent:.3em;}
+.intro p{margin:0;color:var(--muted);font-size:15px;line-height:1.65;max-width:30ch;}
+.intro .strip{display:flex;width:112px;height:5px;}
+.intro .strip i{flex:1;}
+.intro .strip i:nth-child(1){background:#1B75BB}
+.intro .strip i:nth-child(2){background:#00A550}
+.intro .strip i:nth-child(3){background:#FFF200}
+.intro .strip i:nth-child(4){background:#F7941E}
+.intro .strip i:nth-child(5){background:#ED1C24}
+.err{color:#E8796C;font-size:14px;line-height:1.6;max-width:34ch;}
+
+.note-in{
+  font-family:var(--hand);font-size:22px;text-align:center;color:var(--ink);
+  background:rgba(237,231,216,.06);border:1px solid var(--line);border-radius:2px;
+  padding:9px 14px;width:min(100%,330px);
+}
+.note-in:focus{outline:none;border-color:rgba(237,231,216,.36);}
+
+@media (prefers-reduced-motion:reduce){
+  .eject.run{animation-duration:.01s}
+  .dev.go{animation-duration:.8s}
+  .developing img{animation-duration:.8s}
+  .flash.fire{animation-duration:.01s}
+}
+@media (max-height:640px){
+  .shutter{width:66px;height:66px}
+  .deck{padding-top:14px;padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))}
+  .stage{padding:10px}
+}
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+  <div class="bar">
+    <div class="wordmark">Sofortbild</div>
+    <div class="counter" id="count">0 Bilder</div>
+    <button class="icobtn" id="sound" aria-label="Ton ausschalten" title="Ton">
+      <svg viewBox="0 0 24 24" id="sndIcon"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg>
+    </button>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="finder" id="finder">
+      <video id="cam" playsinline autoplay muted></video>
+      <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+      <div class="flash" id="flash"></div>
+    </div>
+    <div class="eject" id="eject" hidden>
+      <div class="pola" id="ejectPola">
+        <div class="win"><img alt="" id="ejectImg"><div class="dev" id="ejectDev"></div></div>
+        <div class="cap"><em class="date" id="ejectDate"></em></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="deck">
+    <div class="rainbow"><i></i><i></i><i></i><i></i><i></i></div>
+    <button class="side" id="flip" aria-label="Kamera wechseln">
+      <svg viewBox="0 0 24 24"><path d="M20 9V7a2 2 0 0 0-2-2h-3l-1.5-2h-3L9 5H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h5"/><path d="M15 18h6m0 0-2.5-2.5M21 18l-2.5 2.5"/><circle cx="12" cy="12" r="3"/></svg>
+      <b>Wechseln</b>
+    </button>
+    <button class="shutter" id="shot" aria-label="Foto aufnehmen"></button>
+    <button class="side" id="open" aria-label="Bilder ansehen">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M3 15.5 8 11l4.5 4M14 13.5 16.5 11l4.5 4.5"/></svg>
+      <b id="openLbl">Bilder</b>
+    </button>
+  </div>
+</div>
+
+<div class="sheet" id="sheet" hidden>
+  <div class="bar">
+    <div class="wordmark" id="sheetTitle">Bilder</div>
+    <button class="icobtn" id="back" aria-label="Zurück">
+      <svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="scroll" id="scroll"><div class="grid" id="grid"></div></div>
+  <div class="one" id="one" hidden></div>
+</div>
+
+<div class="intro" id="intro">
+  <div class="strip"><i></i><i></i><i></i><i></i><i></i></div>
+  <div class="mark">Sofortbild</div>
+  <p>Ein Knopf, ein Bild. Kein Filter-Menü, keine Regler — es kommt raus, wie es rauskommt.</p>
+  <button class="btn key" id="go">Kamera einschalten</button>
+  <div class="err" id="err" hidden></div>
+  <input type="file" id="pick" accept="image/*" hidden>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+var SIDE = 1400;                       // Kantenlänge des Bildfeldes in px
+var PAD  = Math.round(SIDE*4.5/79);    // Polaroid 600: 4.5 mm Rand bei 79 mm Bild
+var FOOT = Math.round(SIDE*23.5/79);   // unterer Rand 23.5 mm
+
+var $ = function(id){ return document.getElementById(id); };
+var stream=null, facing='environment', shots=[], busy=false, sound=true, store=null;
+
+/* ================= Filmkurven =================
+   Angehobene Schwarzwerte, kühle Schatten, warme Lichter — grob die
+   Charakteristik von Polaroid 600. */
+function lut(lift,gamma,gain){
+  var t=new Uint8ClampedArray(256), i, v;
+  for(i=0;i<256;i++){
+    v=i/255;
+    v=Math.pow(v,gamma);
+    v=lift+v*(gain-lift);
+    t[i]=v*255;
+  }
+  return t;
+}
+var LR=lut(0.055,0.95,0.980), LG=lut(0.050,1.00,0.955), LB=lut(0.085,1.06,0.930);
+
+function grade(cv){
+  var ctx=cv.getContext('2d'), w=cv.width, h=cv.height;
+
+  // Lichter ausbluten lassen
+  if('filter' in ctx){
+    try{
+      var bl=document.createElement('canvas'); bl.width=w; bl.height=h;
+      var bx=bl.getContext('2d');
+      bx.filter='blur('+(w*0.013)+'px) brightness(1.32) contrast(1.6)';
+      bx.drawImage(cv,0,0);
+      ctx.save();
+      ctx.globalCompositeOperation='screen';
+      ctx.globalAlpha=0.17;
+      ctx.drawImage(bl,0,0);
+      ctx.restore();
+    }catch(e){}
+  }
+
+  // Kurven, Sättigung, Korn
+  var im=ctx.getImageData(0,0,w,h), d=im.data, i, r,g,b, lum, n;
+  for(i=0;i<d.length;i+=4){
+    r=LR[d[i]]; g=LG[d[i+1]]; b=LB[d[i+2]];
+    lum=0.299*r+0.587*g+0.114*b;
+    r=lum+(r-lum)*0.90;
+    g=lum+(g-lum)*0.86;
+    b=lum+(b-lum)*0.88;
+    n=(Math.random()-0.5)*13;
+    d[i]=r+n+4; d[i+1]=g+n; d[i+2]=b+n;
+  }
+  ctx.putImageData(im,0,0);
+
+  // Vignette
+  var vg=ctx.createRadialGradient(w/2,h*0.47,w*0.30,w/2,h*0.47,w*0.78);
+  vg.addColorStop(0,'rgba(0,0,0,0)');
+  vg.addColorStop(1,'rgba(14,10,24,0.32)');
+  ctx.fillStyle=vg; ctx.fillRect(0,0,w,h);
+  return cv;
+}
+
+/* Quadratischer Mittel-Ausschnitt aus einer Quelle */
+function square(src,sw,sh,mirror){
+  var cv=document.createElement('canvas'); cv.width=SIDE; cv.height=SIDE;
+  var ctx=cv.getContext('2d');
+  var s=Math.min(sw,sh), sx=(sw-s)/2, sy=(sh-s)/2;
+  if(mirror){ ctx.translate(SIDE,0); ctx.scale(-1,1); }
+  ctx.drawImage(src,sx,sy,s,s,0,0,SIDE,SIDE);
+  return grade(cv);
+}
+
+/* Fertiges Polaroid inkl. Papier und Beschriftung — nur zum Sichern */
+function paper(img,dateText,note){
+  var W=SIDE+PAD*2, H=PAD+SIDE+FOOT;
+  var cv=document.createElement('canvas'); cv.width=W; cv.height=H;
+  var c=cv.getContext('2d');
+
+  var pg=c.createLinearGradient(0,0,W*.35,H);
+  pg.addColorStop(0,'#F6F2E7'); pg.addColorStop(1,'#E7E1D1');
+  c.fillStyle=pg; c.fillRect(0,0,W,H);
+
+  c.drawImage(img,PAD,PAD,SIDE,SIDE);
+  c.strokeStyle='rgba(0,0,0,.20)'; c.lineWidth=2;
+  c.strokeRect(PAD-1,PAD-1,SIDE+2,SIDE+2);
+
+  var baseY=PAD+SIDE+FOOT*0.55;
+  c.textAlign='center'; c.textBaseline='middle';
+  if(note){
+    c.font='600 '+Math.round(FOOT*0.40)+'px Caveat, cursive';
+    c.fillStyle='#3B4A63';
+    c.fillText(note,W/2,baseY-FOOT*0.10,W*0.84);
+    c.font='400 '+Math.round(FOOT*0.24)+'px Caveat, cursive';
+    c.fillStyle='#7C8494';
+    c.fillText(dateText,W/2,baseY+FOOT*0.27,W*0.84);
+  }else{
+    c.font='400 '+Math.round(FOOT*0.33)+'px Caveat, cursive';
+    c.fillStyle='#6E7788';
+    c.fillText(dateText,W/2,baseY,W*0.84);
+  }
+  return cv;
+}
+
+/* ================= Ton ================= */
+var actx=null;
+function click(){
+  if(!sound) return;
+  try{
+    if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)();
+    if(actx.state==='suspended') actx.resume();
+    var t=actx.currentTime;
+
+    // Verschluss: kurzer Rauschimpuls
+    var len=Math.floor(actx.sampleRate*0.05);
+    var buf=actx.createBuffer(1,len,actx.sampleRate), ch=buf.getChannelData(0);
+    for(var i=0;i<len;i++) ch[i]=(Math.random()*2-1)*Math.pow(1-i/len,7);
+    var src=actx.createBufferSource(); src.buffer=buf;
+    var bp=actx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=2400; bp.Q.value=1.1;
+    var g1=actx.createGain(); g1.gain.value=0.5;
+    src.connect(bp); bp.connect(g1); g1.connect(actx.destination);
+    src.start(t);
+
+    // Motor: das Surren beim Auswerfen
+    var o=actx.createOscillator(); o.type='sawtooth'; o.frequency.value=78;
+    var lp=actx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=620;
+    var g2=actx.createGain();
+    g2.gain.setValueAtTime(0,t+0.06);
+    g2.gain.linearRampToValueAtTime(0.10,t+0.16);
+    g2.gain.setValueAtTime(0.10,t+0.72);
+    g2.gain.linearRampToValueAtTime(0,t+0.95);
+    o.connect(lp); lp.connect(g2); g2.connect(actx.destination);
+    o.start(t+0.06); o.stop(t+1);
+  }catch(e){}
+}
+
+/* ================= Speicher ================= */
+function openDB(){
+  return new Promise(function(res,rej){
+    var r=indexedDB.open('sofortbild',1);
+    r.onupgradeneeded=function(){ r.result.createObjectStore('shots',{keyPath:'id'}); };
+    r.onsuccess=function(){ res(r.result); };
+    r.onerror=function(){ rej(r.error); };
+  });
+}
+function tx(mode,fn){
+  if(!store) return Promise.resolve();
+  return new Promise(function(res,rej){
+    var t=store.transaction('shots',mode), s=t.objectStore('shots'), out;
+    out=fn(s);
+    t.oncomplete=function(){ res(out&&out.result); };
+    t.onerror=function(){ rej(t.error); };
+  });
+}
+function save(rec){ return tx('readwrite',function(s){ return s.put({id:rec.id,ts:rec.ts,note:rec.note,blob:rec.blob}); }).catch(function(){}); }
+function drop(id){ return tx('readwrite',function(s){ return s.delete(id); }).catch(function(){}); }
+function loadAll(){ return tx('readonly',function(s){ return s.getAll(); }).catch(function(){ return []; }); }
+
+/* ================= Kamera ================= */
+function start(){
+  /* In einem abgeschotteten Rahmen fehlt mediaDevices ganz — dann gibt es keinen
+     Aufruf, den man abfangen könnte, also hier sauber abbiegen. */
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    var gone=new Error('mediaDevices fehlt'); gone.name='KeinKamerazugriff';
+    return Promise.reject(gone);
+  }
+  var want={ video:{ facingMode:{ideal:facing}, width:{ideal:1920}, height:{ideal:1920} }, audio:false };
+  return navigator.mediaDevices.getUserMedia(want).then(function(s){
+    if(stream) stream.getTracks().forEach(function(t){ t.stop(); });
+    stream=s;
+    $('cam').srcObject=s;
+    $('finder').classList.toggle('mirror',facing==='user');
+    return $('cam').play().catch(function(){});
+  });
+}
+
+function fail(e){
+  var framed = window.self !== window.top;
+  var secure = window.isSecureContext;
+  var name   = (e && e.name) || 'Fehler';
+  var m;
+
+  if(name==='KeinKamerazugriff'){
+    if(framed)
+      m='Diese Seite läuft in einem eingebetteten Rahmen, der die Kamera gar nicht erst durchreicht. Deine Safari-Einstellung kann daran nichts ändern — die App muss als eigene Seite laufen.';
+    else if(!secure)
+      m='Die Seite wird nicht über HTTPS geladen. Ohne HTTPS gibt kein Browser die Kamera frei.';
+    else
+      m='Dieser Browser stellt keinen Kamerazugriff bereit. Öffne die Seite in Safari.';
+  }
+  else if(name==='NotAllowedError'){
+    m = framed
+      ? 'Der Zugriff wurde blockiert — das kommt vom Rahmen, in dem diese Seite läuft, nicht von deiner Safari-Einstellung.'
+      : 'Der Kamerazugriff wurde abgelehnt. In Safari: auf das „aA“ links in der Adressleiste tippen → Website-Einstellungen → Kamera → Erlauben. Dann neu laden.';
+  }
+  else if(name==='NotFoundError')    m='Es wurde keine Kamera gefunden.';
+  else if(name==='NotReadableError') m='Die Kamera wird gerade von einer anderen App benutzt. Schließe sie und versuch es nochmal.';
+  else                               m='Die Kamera lässt sich nicht öffnen.';
+
+  var box=$('err');
+  box.hidden=false;
+  box.innerHTML='';
+
+  var p=document.createElement('div');
+  p.textContent=m;
+  box.appendChild(p);
+
+  var a=document.createElement('button');
+  a.className='btn'; a.style.marginTop='14px'; a.style.display='block';
+  a.textContent='Stattdessen ein Bild auswählen';
+  a.onclick=function(){ $('pick').click(); };
+  box.appendChild(a);
+
+  /* Damit nicht geraten werden muss, woran es lag */
+  var tech=document.createElement('div');
+  tech.style.cssText='margin-top:12px;font-size:11.5px;letter-spacing:.06em;opacity:.55;color:var(--muted)';
+  tech.textContent=name+' · '+(framed?'im Rahmen':'eigene Seite')+' · '+(secure?'HTTPS':'kein HTTPS');
+  box.appendChild(tech);
+}
+
+/* ================= Aufnahme ================= */
+function fmtDate(ts){
+  var d=new Date(ts);
+  return d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
+}
+
+function shoot(){
+  if(busy) return;
+  var v=$('cam');
+  if(!stream || !v.videoWidth){ $('pick').click(); return; }   /* ohne Kamera: Bild aus der Galerie */
+  busy=true; $('shot').disabled=true;
+
+  click();
+  $('flash').classList.remove('fire'); void $('flash').offsetWidth; $('flash').classList.add('fire');
+
+  var cv=square(v,v.videoWidth,v.videoHeight,facing==='user');
+  finish(cv);
+}
+
+function finish(cv){
+  cv.toBlob(function(blob){
+    var rec={ id:Date.now()+'-'+Math.random().toString(36).slice(2,7), ts:Date.now(), note:'', blob:blob };
+    rec.url=URL.createObjectURL(blob);
+    shots.unshift(rec);
+    save(rec);
+    tally();
+    eject(rec);
+  },'image/jpeg',0.90);
+}
+
+function eject(rec){
+  var box=$('eject');
+  $('ejectImg').src=rec.url;
+  $('ejectDate').textContent=fmtDate(rec.ts);
+  $('ejectPola').classList.remove('developing');
+  $('ejectDev').classList.remove('go');
+  box.className='eject'; box.hidden=false;
+  void box.offsetWidth;
+  box.classList.add('run');
+
+  setTimeout(function(){
+    $('ejectPola').classList.add('developing');
+    $('ejectDev').classList.add('go');
+    busy=false; $('shot').disabled=false;
+  },1000);
+
+  setTimeout(function(){
+    box.classList.remove('run');
+    box.classList.add('tuck');
+    setTimeout(function(){ box.hidden=true; box.className='eject'; },520);
+  },5400);
+}
+
+function tally(){
+  var n=shots.length;
+  $('count').textContent=n===1?'1 Bild':n+' Bilder';
+  $('openLbl').textContent=n?'Bilder '+n:'Bilder';
+  $('open').disabled=!n;
+}
+
+/* ================= Galerie ================= */
+function polaNode(rec){
+  var d=document.createElement('div');
+  d.className='pola';
+  d.innerHTML='<div class="win"><img alt="Sofortbild vom '+fmtDate(rec.ts)+'"></div>'+
+              '<div class="cap"><em></em></div>';
+  d.querySelector('img').src=rec.url;
+  var em=d.querySelector('em');
+  if(rec.note){ em.textContent=rec.note; }
+  else { em.textContent=fmtDate(rec.ts); em.className='date'; }
+  return d;
+}
+
+var GRID=$('grid');   /* festhalten: der Leer-Zustand nimmt es zwischendurch aus dem DOM */
+
+function showGrid(){
+  $('one').hidden=true; $('scroll').hidden=false;
+  $('sheetTitle').textContent='Bilder';
+  $('scroll').innerHTML='';
+  GRID.innerHTML='';
+
+  if(!shots.length){
+    var e=document.createElement('div');
+    e.className='empty';
+    e.innerHTML='<svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="3.5"/><path d="M9 6l1.5-2h3L15 6"/></svg>'+
+      '<div>Noch keine Bilder. Zurück und auf den roten Knopf drücken.</div>';
+    $('scroll').appendChild(e);
+    return;
+  }
+
+  shots.forEach(function(rec){
+    var b=document.createElement('button');
+    b.appendChild(polaNode(rec));
+    b.onclick=function(){ showOne(rec); };
+    GRID.appendChild(b);
+  });
+  $('scroll').appendChild(GRID);
+}
+
+function showOne(rec){
+  $('scroll').hidden=true;
+  var one=$('one'); one.hidden=false; one.innerHTML='';
+  $('sheetTitle').textContent=fmtDate(rec.ts);
+
+  one.appendChild(polaNode(rec));
+
+  var input=document.createElement('input');
+  input.className='note-in'; input.id='note-'+rec.id; input.maxLength=42;
+  input.placeholder='Beschriften …'; input.value=rec.note||'';
+  input.oninput=function(){
+    rec.note=input.value.trim();
+    var em=one.querySelector('.cap em');
+    if(rec.note){ em.textContent=rec.note; em.className=''; }
+    else { em.textContent=fmtDate(rec.ts); em.className='date'; }
+    save(rec);
+  };
+  one.appendChild(input);
+
+  var tools=document.createElement('div'); tools.className='tools';
+
+  var keep=document.createElement('button');
+  keep.className='btn key'; keep.textContent='In Fotos sichern';
+  keep.onclick=function(){ keepIt(rec,keep); };
+  tools.appendChild(keep);
+
+  var del=document.createElement('button');
+  del.className='btn warn'; del.textContent='Verwerfen';
+  del.onclick=function(){
+    if(del.dataset.armed!=='1'){ del.dataset.armed='1'; del.textContent='Wirklich?'; return; }
+    drop(rec.id);
+    URL.revokeObjectURL(rec.url);
+    shots=shots.filter(function(s){ return s.id!==rec.id; });
+    tally(); showGrid();
+  };
+  tools.appendChild(del);
+  one.appendChild(tools);
+
+  var hint=document.createElement('div');
+  hint.className='hint'; hint.id='hint-'+rec.id;
+  one.appendChild(hint);
+}
+
+function keepIt(rec,btn){
+  var img=new Image();
+  img.onload=function(){
+    var cv=paper(img,fmtDate(rec.ts),rec.note);
+    cv.toBlob(function(blob){
+      var file=new File([blob],'sofortbild-'+rec.id+'.jpg',{type:'image/jpeg'});
+      var hint=$('hint-'+rec.id);
+      if(navigator.canShare && navigator.canShare({files:[file]})){
+        navigator.share({files:[file]}).then(function(){
+          btn.textContent='Gesichert';
+          setTimeout(function(){ btn.textContent='In Fotos sichern'; },2200);
+        }).catch(function(){});
+      }else{
+        // Ohne Teilen-Funktion: Bild groß anzeigen, langes Tippen sichert es
+        var url=URL.createObjectURL(blob);
+        var big=$('one').querySelector('.pola');
+        var shown=new Image();
+        shown.src=url; shown.style.width='100%'; shown.style.display='block';
+        shown.alt='Fertiges Sofortbild — lange darauf tippen zum Sichern';
+        big.replaceWith(shown);
+        if(hint) hint.textContent='Lange auf das Bild tippen → „Bild sichern“. (Dein Browser gibt das Teilen-Menü nicht frei.)';
+      }
+    },'image/jpeg',0.92);
+  };
+  img.src=rec.url;
+}
+
+/* ================= Verdrahtung ================= */
+$('shot').onclick=shoot;
+
+$('flip').onclick=function(){
+  facing = facing==='environment' ? 'user' : 'environment';
+  start().catch(function(){ facing = facing==='environment' ? 'user' : 'environment'; start().catch(function(){}); });
+};
+
+$('open').onclick=function(){ $('sheet').hidden=false; showGrid(); };
+$('back').onclick=function(){
+  if(!$('one').hidden){ showGrid(); return; }
+  $('sheet').hidden=true;
+};
+
+$('sound').onclick=function(){
+  sound=!sound;
+  $('sound').setAttribute('aria-label', sound?'Ton ausschalten':'Ton einschalten');
+  $('sndIcon').innerHTML = sound
+    ? '<path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/>'
+    : '<path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M16 9.5l4 5m0-5-4 5"/>';
+};
+
+document.addEventListener('keydown',function(e){
+  if(e.key===' '&&$('sheet').hidden&&$('intro').hidden){ e.preventDefault(); shoot(); }
+  if(e.key==='Escape'&&!$('sheet').hidden) $('back').click();
+});
+
+$('pick').onchange=function(){
+  var f=$('pick').files&&$('pick').files[0];
+  if(!f) return;
+  var img=new Image();
+  img.onload=function(){
+    $('intro').hidden=true;
+    finish(square(img,img.naturalWidth,img.naturalHeight,false));
+    URL.revokeObjectURL(img.src);
+  };
+  img.src=URL.createObjectURL(f);
+};
+
+$('go').onclick=function(){
+  $('err').hidden=true;
+  $('go').textContent='Einen Moment …';
+  start().then(function(){
+    $('intro').hidden=true;
+    /* AudioContext braucht diese Geste, sonst bleibt der Auslöser stumm */
+    try{ if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){}
+  }).catch(function(e){
+    $('go').textContent='Nochmal versuchen';
+    fail(e);
+  });
+};
+
+document.addEventListener('visibilitychange',function(){
+  if(document.hidden && stream){ stream.getTracks().forEach(function(t){ t.enabled=false; }); }
+  else if(stream){ stream.getTracks().forEach(function(t){ t.enabled=true; }); }
+});
+
+/* Start: Schriften laden, alte Bilder holen */
+(function boot(){
+  if(document.fonts && document.fonts.load){
+    document.fonts.load('400 24px Caveat').catch(function(){});
+    document.fonts.load('600 24px Caveat').catch(function(){});
+  }
+  openDB().then(function(db){
+    store=db;
+    return loadAll();
+  }).then(function(rows){
+    if(!rows||!rows.length) return;
+    rows.sort(function(a,b){ return b.ts-a.ts; });
+    shots=rows.map(function(r){ r.url=URL.createObjectURL(r.blob); return r; });
+    tally();
+  }).catch(function(){});
+  tally();
+})();
+
+})();
+
+/* Offline-Betrieb: scheitert still auf file:// und in Rahmen ohne eigenen Ursprung */
+if('serviceWorker' in navigator && location.protocol==='https:'){
+  window.addEventListener('load',function(){
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+  });
+}
+</script>
+</body>
+</html>
