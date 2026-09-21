@@ -191,8 +191,17 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--film);outl
 }
 body.matt .gloss{display:none;}
 
+/* Das Blatt kippt mit dem Gerät, als läge es in der Hand */
+.tilt3d{
+  transform:perspective(900px) rotateY(var(--tiltY,0deg)) rotateX(var(--tiltX,0deg));
+  transition:transform .14s linear;
+  will-change:transform;
+}
+body.matt .tilt3d{transform:none;}
+
 @media (prefers-reduced-motion:reduce){
   .gloss::before{transition:none;}
+  .tilt3d{transform:none;transition:none;}
 }
 
 /* Entwicklungs-Animation */
@@ -287,7 +296,13 @@ body.matt .gloss{display:none;}
 }
 .seg button+button{border-left:1px solid var(--line);}
 .seg button.on{background:var(--film);color:#1A1712;font-weight:600;}
-.seg button:not(.on):hover{background:rgba(237,231,216,.07);color:var(--ink);}
+.seg button:not(.on):hover:not(:disabled){background:rgba(237,231,216,.07);color:var(--ink);}
+.seg button:disabled{cursor:default;}
+.seg button:disabled:not(.on){opacity:.32;}
+.segnote{
+  margin-top:-8px;font-size:12.5px;color:var(--muted);text-align:center;
+  max-width:32ch;line-height:1.5;
+}
 .savehint{
   color:var(--ink);font-size:14.5px;line-height:1.6;text-align:center;max-width:30ch;
 }
@@ -334,7 +349,7 @@ body.matt .gloss{display:none;}
       <div class="flash" id="flash"></div>
     </div>
     <div class="eject" id="eject" hidden>
-      <div class="pola" id="ejectPola">
+      <div class="pola tilt3d" id="ejectPola">
         <div class="win"><img alt="" id="ejectImg"><div class="dev" id="ejectDev"></div></div>
         <div class="cap"><em class="date" id="ejectDate"></em></div>
         <span class="gloss"></span>
@@ -379,7 +394,8 @@ body.matt .gloss{display:none;}
       <button id="segPlain" class="on">Sauber</button>
       <button id="segShiny">Mit Spiegelung</button>
     </div>
-    <img id="saveImg" alt="Fertiges Sofortbild – lange antippen zum Sichern">
+    <div class="segnote" id="segNote" hidden>Beim Auslösen war die Spiegelung an — sie gehört zu diesem Bild.</div>
+    <img id="saveImg" class="tilt3d" alt="Fertiges Sofortbild – lange antippen zum Sichern">
     <div class="savehint">
       Lange auf das Bild tippen → <b>„Zu Fotos hinzufügen“</b>
       <span class="press">Das ist auf dem iPhone der zuverlässigste Weg.</span>
@@ -537,6 +553,19 @@ function paper(img,dateText,note,shiny){
 
 /* ================= Ton ================= */
 var actx=null;
+
+/* Ein kurzer mechanischer Anschlag — der Verschluss */
+function tick(t,freq,amp,decay){
+  var len=Math.floor(actx.sampleRate*0.06);
+  var buf=actx.createBuffer(1,len,actx.sampleRate), ch=buf.getChannelData(0), i;
+  for(i=0;i<len;i++) ch[i]=(Math.random()*2-1)*Math.pow(1-i/len,decay);
+  var src=actx.createBufferSource(); src.buffer=buf;
+  var bp=actx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=freq; bp.Q.value=1.4;
+  var g=actx.createGain(); g.gain.value=amp;
+  src.connect(bp); bp.connect(g); g.connect(actx.destination);
+  src.start(t);
+}
+
 function click(){
   if(!sound) return;
   try{
@@ -544,26 +573,30 @@ function click(){
     if(actx.state==='suspended') actx.resume();
     var t=actx.currentTime;
 
-    // Verschluss: kurzer Rauschimpuls
-    var len=Math.floor(actx.sampleRate*0.05);
-    var buf=actx.createBuffer(1,len,actx.sampleRate), ch=buf.getChannelData(0);
-    for(var i=0;i<len;i++) ch[i]=(Math.random()*2-1)*Math.pow(1-i/len,7);
-    var src=actx.createBufferSource(); src.buffer=buf;
-    var bp=actx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=2400; bp.Q.value=1.1;
-    var g1=actx.createGain(); g1.gain.value=0.5;
-    src.connect(bp); bp.connect(g1); g1.connect(actx.destination);
-    src.start(t);
+    // Verschluss auf, Verschluss zu
+    tick(t,        3100, 0.40, 9);
+    tick(t+0.045,  2150, 0.26, 12);
 
-    // Motor: das Surren beim Auswerfen
-    var o=actx.createOscillator(); o.type='sawtooth'; o.frequency.value=78;
-    var lp=actx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=620;
-    var g2=actx.createGain();
-    g2.gain.setValueAtTime(0,t+0.06);
-    g2.gain.linearRampToValueAtTime(0.10,t+0.16);
-    g2.gain.setValueAtTime(0.10,t+0.72);
-    g2.gain.linearRampToValueAtTime(0,t+0.95);
-    o.connect(lp); lp.connect(g2); g2.connect(actx.destination);
-    o.start(t+0.06); o.stop(t+1);
+    /* Der Auswurfmotor. Kein Brummton, sondern Rauschen, dessen Lautstärke
+       mit rund 66 Hz rattert — so klingen die Zahnräder und die Walze. */
+    var dur=0.92, len=Math.floor(actx.sampleRate*dur);
+    var buf=actx.createBuffer(1,len,actx.sampleRate), ch=buf.getChannelData(0);
+    var i,tt,mod,env;
+    for(i=0;i<len;i++){
+      tt=i/actx.sampleRate;
+      mod=0.52+0.48*Math.pow(Math.abs(Math.sin(Math.PI*66*tt)),0.55);
+      env=Math.min(1,tt/0.045)*Math.min(1,(dur-tt)/0.14);
+      ch[i]=(Math.random()*2-1)*mod*env;
+    }
+    var m=actx.createBufferSource(); m.buffer=buf;
+    var bp=actx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=1250; bp.Q.value=0.75;
+    var hp=actx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=360;
+    var mg=actx.createGain(); mg.gain.value=0.075;
+    m.connect(bp); bp.connect(hp); hp.connect(mg); mg.connect(actx.destination);
+    m.start(t+0.05);
+
+    // Das Blatt, das aus dem Schlitz streift
+    tick(t+0.92, 5200, 0.12, 5);
   }catch(e){}
 }
 
@@ -585,7 +618,7 @@ function tx(mode,fn){
     t.onerror=function(){ rej(t.error); };
   });
 }
-function save(rec){ return tx('readwrite',function(s){ return s.put({id:rec.id,ts:rec.ts,note:rec.note,blob:rec.blob}); }).catch(function(){}); }
+function save(rec){ return tx('readwrite',function(s){ return s.put({id:rec.id,ts:rec.ts,note:rec.note,blob:rec.blob,gloss:rec.gloss}); }).catch(function(){}); }
 function drop(id){ return tx('readwrite',function(s){ return s.delete(id); }).catch(function(){}); }
 function loadAll(){ return tx('readonly',function(s){ return s.getAll(); }).catch(function(){ return []; }); }
 
@@ -672,7 +705,8 @@ function shoot(){
 
 function finish(cv){
   cv.toBlob(function(blob){
-    var rec={ id:Date.now()+'-'+Math.random().toString(36).slice(2,7), ts:Date.now(), note:'', blob:blob };
+    /* Der Glanz-Zustand beim Auslösen gehört ab jetzt zu diesem Bild */
+    var rec={ id:Date.now()+'-'+Math.random().toString(36).slice(2,7), ts:Date.now(), note:'', blob:blob, gloss:shine };
     rec.url=URL.createObjectURL(blob);
     shots.unshift(rec);
     save(rec);
@@ -755,7 +789,9 @@ function showOne(rec){
   var one=$('one'); one.hidden=false; one.innerHTML='';
   $('sheetTitle').textContent=fmtDate(rec.ts);
 
-  one.appendChild(polaNode(rec));
+  var big=polaNode(rec);
+  big.classList.add('tilt3d');
+  one.appendChild(big);
 
   var input=document.createElement('input');
   input.className='note-in'; input.id='note-'+rec.id; input.maxLength=42;
@@ -793,7 +829,7 @@ function showOne(rec){
   one.appendChild(hint);
 }
 
-var saveURL=null, saveFile=null, saveRec=null, saveSrc=null, saveShiny=false;
+var saveURL=null, saveFile=null, saveRec=null, saveSrc=null, saveShiny=false, saveLocked=false;
 
 /* Fertiges Polaroid rendern und zum Sichern anbieten. Das Bild kommt als echtes
    <img> auf den Schirm, damit iOS „Zu Fotos hinzufügen“ anbietet — das Teilen-
@@ -803,7 +839,10 @@ function keepIt(rec,btn){
   var img=new Image();
   img.onload=function(){
     btn.textContent='In Fotos sichern';
-    saveRec=rec; saveSrc=img; saveShiny=false;
+    saveRec=rec; saveSrc=img;
+    /* War die Spiegelung beim Auslösen an, gehört sie zum Bild und bleibt */
+    saveLocked=!!rec.gloss;
+    saveShiny=!!rec.gloss;
     paintSeg();
     renderSave();
     $('save').hidden=false;
@@ -827,10 +866,13 @@ function renderSave(){
 function paintSeg(){
   $('segPlain').classList.toggle('on',!saveShiny);
   $('segShiny').classList.toggle('on',saveShiny);
+  $('segPlain').disabled=saveLocked;
+  $('segShiny').disabled=saveLocked;
+  $('segNote').hidden=!saveLocked;
 }
 
-$('segPlain').onclick=function(){ if(!saveShiny) return; saveShiny=false; paintSeg(); renderSave(); };
-$('segShiny').onclick=function(){ if(saveShiny) return;  saveShiny=true;  paintSeg(); renderSave(); };
+$('segPlain').onclick=function(){ if(saveLocked||!saveShiny) return; saveShiny=false; paintSeg(); renderSave(); };
+$('segShiny').onclick=function(){ if(saveLocked||saveShiny) return;  saveShiny=true;  paintSeg(); renderSave(); };
 
 $('saveBack').onclick=function(){ $('save').hidden=true; };
 
@@ -867,10 +909,16 @@ function paintGloss(){
 }
 
 function tilt(e){
-  var g=e.gamma;
+  var g=e.gamma, b=e.beta, r=document.documentElement.style;
   if(g==null) return;
   g=Math.max(-40,Math.min(40,g));
-  document.documentElement.style.setProperty('--sheen',(g/40*115)+'%');
+  r.setProperty('--sheen',(g/40*115)+'%');
+  r.setProperty('--tiltY',(g/40*9)+'deg');
+  if(b!=null){
+    /* Beim Halten liegt beta bei etwa 45° — das ist hier die Ruhelage */
+    var bb=Math.max(-40,Math.min(40,b-45));
+    r.setProperty('--tiltX',(-bb/40*6)+'deg');
+  }
 }
 
 /* iOS verlangt für den Neigungssensor eine eigene Erlaubnis, und die darf nur
@@ -897,7 +945,11 @@ $('gloss').onclick=function(){
 if(!('ontouchstart' in window)){
   document.addEventListener('mousemove',function(e){
     if(!shine || tiltOn) return;
-    document.documentElement.style.setProperty('--sheen',((e.clientX/window.innerWidth-0.5)*230)+'%');
+    var x=e.clientX/window.innerWidth-0.5, y=e.clientY/window.innerHeight-0.5;
+    var r=document.documentElement.style;
+    r.setProperty('--sheen',(x*230)+'%');
+    r.setProperty('--tiltY',(x*18)+'deg');
+    r.setProperty('--tiltX',(-y*12)+'deg');
   });
 }
 
