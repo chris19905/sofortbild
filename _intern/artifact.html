@@ -70,7 +70,8 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--film);outl
 /* ---------- Sucher ---------- */
 .stage{flex:1 1 auto;min-height:0;display:grid;place-items:center;padding:16px;position:relative;overflow:hidden;}
 .finder{
-  position:relative; width:min(100%,560px); aspect-ratio:1; max-width:100%; max-height:100%;
+  position:relative; isolation:isolate;
+  width:min(100%,560px); aspect-ratio:1; max-width:100%; max-height:100%;
   background:#0B0A07; border-radius:3px; overflow:hidden;
   box-shadow:0 0 0 1px rgba(237,231,216,.10), 0 26px 60px -22px #000 inset, 0 18px 44px -28px #000;
 }
@@ -166,30 +167,65 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--film);outl
 .gloss{
   position:absolute; inset:0; z-index:4;
   pointer-events:none; overflow:hidden; border-radius:2px;
-}
-.gloss::before{   /* der wandernde Lichtstreifen */
-  content:""; position:absolute; top:-60%; left:20%;
-  width:46%; height:220%;
-  background:linear-gradient(90deg,
-    transparent,
-    rgba(255,255,255,.09) 26%,
-    rgba(255,255,255,.30) 50%,
-    rgba(255,255,255,.07) 74%,
-    transparent);
   mix-blend-mode:screen;
-  transform:rotate(19deg) translateX(var(--sheen,0%));
+  background:
+    /* Der Hauptreflex: eine große weiche Lichtquelle, die mitwandert */
+    radial-gradient(135% 95% at var(--gx,50%) var(--gy,14%),
+      rgba(255,255,255,.42) 0%,
+      rgba(255,255,255,.21) 21%,
+      rgba(255,255,255,.07) 43%,
+      rgba(255,255,255,0)   66%),
+    /* Schwaches Gegenlicht aus der gegenüberliegenden Ecke */
+    radial-gradient(95% 70% at calc(100% - var(--gx,50%)) 97%,
+      rgba(255,255,255,.11) 0%,
+      rgba(255,255,255,0)   55%);
+}
+.gloss::before{   /* der Fensterstreifen — breit und weich, keine Linie */
+  content:""; position:absolute; top:-70%; left:-12%;
+  width:74%; height:240%;
+  background:linear-gradient(90deg,
+    transparent 0%,
+    rgba(255,255,255,.04) 17%,
+    rgba(255,255,255,.19) 37%,
+    rgba(255,255,255,.31) 50%,
+    rgba(255,255,255,.15) 63%,
+    rgba(255,255,255,.03) 83%,
+    transparent 100%);
+  filter:blur(7px);
+  transform:rotate(17deg) translateX(var(--sheen,0%));
   transition:transform .13s linear;
 }
-.gloss::after{    /* ruhiger Grundglanz aus der oberen Ecke */
+.gloss::after{    /* Kantenglanz an der Oberkante */
   content:""; position:absolute; inset:0;
-  background:linear-gradient(157deg,
-    rgba(255,255,255,.13),
-    rgba(255,255,255,.02) 34%,
-    transparent 58%,
-    rgba(255,255,255,.045));
-  mix-blend-mode:screen;
+  background:linear-gradient(168deg,
+    rgba(255,255,255,.17) 0%,
+    rgba(255,255,255,.04) 11%,
+    transparent 32%);
 }
-body.matt .gloss{display:none;}
+
+/* Im Sucher zeigt der Glanz vorab, wie das Blatt aussehen wird.
+   Er wandert dort live weiter — erst beim Auslösen wird er festgehalten. */
+#finderGloss{z-index:1;border-radius:3px;}
+body.matt #finderGloss{display:none;}
+
+.check{
+  display:inline-flex;align-items:center;gap:10px;cursor:pointer;
+  font-family:var(--label);font-size:13.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--muted);
+}
+.check input{
+  appearance:none;-webkit-appearance:none;margin:0;
+  width:19px;height:19px;border:1px solid var(--line);border-radius:2px;
+  background:none;cursor:pointer;display:grid;place-items:center;
+  transition:background .14s,border-color .14s;
+}
+.check input:checked{background:var(--film);border-color:var(--film);}
+.check input:checked::after{
+  content:"";width:10px;height:6px;
+  border-left:2px solid #1A1712;border-bottom:2px solid #1A1712;
+  transform:rotate(-45deg) translate(1px,-1px);
+}
+.check input:checked+span{color:var(--ink);}
 
 /* Das Blatt kippt mit dem Gerät, als läge es in der Hand */
 .tilt3d{
@@ -345,6 +381,7 @@ body.matt .tilt3d{transform:none;}
   <div class="stage" id="stage">
     <div class="finder" id="finder">
       <video id="cam" playsinline autoplay muted></video>
+      <span class="gloss" id="finderGloss"></span>
       <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
       <div class="flash" id="flash"></div>
     </div>
@@ -352,7 +389,7 @@ body.matt .tilt3d{transform:none;}
       <div class="pola tilt3d" id="ejectPola">
         <div class="win"><img alt="" id="ejectImg"><div class="dev" id="ejectDev"></div></div>
         <div class="cap"><em class="date" id="ejectDate"></em></div>
-        <span class="gloss"></span>
+        <span class="gloss" id="ejectGloss"></span>
       </div>
     </div>
   </div>
@@ -492,34 +529,62 @@ function square(src,sw,sh,mirror){
 
 /* Die Spiegelung als gemalte Schicht — dieselbe Geometrie wie das CSS-Overlay,
    nur kräftiger, weil sie hier ein abfotografiertes Bild nachstellt. */
-function sheen(c,W,H){
+function sheen(c,W,H,gx,gy,sh){
+  var cx=(typeof gx==='number'?gx:50)/100*W;
+  var cy=(typeof gy==='number'?gy:14)/100*H;
+  var off=(typeof sh==='number'?sh:0)/100;
+
   c.save();
   c.globalCompositeOperation='screen';
 
-  // Ruhiger Grundglanz aus der oberen Ecke
-  var g1=c.createLinearGradient(0,0,W*0.55,H);
-  g1.addColorStop(0,   'rgba(255,255,255,0.19)');
-  g1.addColorStop(0.34,'rgba(255,255,255,0.03)');
-  g1.addColorStop(0.58,'rgba(255,255,255,0)');
-  g1.addColorStop(1,   'rgba(255,255,255,0.07)');
-  c.fillStyle=g1; c.fillRect(0,0,W,H);
+  // Hauptreflex: die große Lichtquelle, als Ellipse wie im CSS
+  c.save();
+  c.translate(cx,cy);
+  c.scale(1,0.70);
+  var g1=c.createRadialGradient(0,0,0,0,0,W*1.35);
+  g1.addColorStop(0,   'rgba(255,255,255,0.42)');
+  g1.addColorStop(0.21,'rgba(255,255,255,0.21)');
+  g1.addColorStop(0.43,'rgba(255,255,255,0.07)');
+  g1.addColorStop(0.66,'rgba(255,255,255,0)');
+  g1.addColorStop(1,   'rgba(255,255,255,0)');
+  c.fillStyle=g1; c.fillRect(-W*2,-H*2,W*4,H*4);
+  c.restore();
 
-  // Der schräge Lichtstreifen
-  c.translate(W*0.43,H*0.50);
-  c.rotate(19*Math.PI/180);
-  var g2=c.createLinearGradient(-W*0.23,0,W*0.23,0);
-  g2.addColorStop(0,   'rgba(255,255,255,0)');
-  g2.addColorStop(0.26,'rgba(255,255,255,0.13)');
-  g2.addColorStop(0.5, 'rgba(255,255,255,0.42)');
-  g2.addColorStop(0.74,'rgba(255,255,255,0.10)');
+  // Gegenlicht aus der unteren Ecke
+  var bx=W-cx;
+  var g2=c.createRadialGradient(bx,H*0.97,0,bx,H*0.97,W*0.95);
+  g2.addColorStop(0,   'rgba(255,255,255,0.11)');
+  g2.addColorStop(0.55,'rgba(255,255,255,0)');
   g2.addColorStop(1,   'rgba(255,255,255,0)');
-  c.fillStyle=g2; c.fillRect(-W*0.23,-H*1.10,W*0.46,H*2.20);
+  c.fillStyle=g2; c.fillRect(0,0,W,H);
+
+  // Kantenglanz an der Oberkante
+  var g3=c.createLinearGradient(0,0,W*0.20,H*0.34);
+  g3.addColorStop(0,   'rgba(255,255,255,0.17)');
+  g3.addColorStop(0.11,'rgba(255,255,255,0.04)');
+  g3.addColorStop(1,   'rgba(255,255,255,0)');
+  c.fillStyle=g3; c.fillRect(0,0,W,H);
+
+  // Der breite Fensterstreifen
+  var sw=W*0.74;
+  if('filter' in c){ try{ c.filter='blur('+(W*0.016)+'px)'; }catch(e){} }
+  c.translate(W*0.25+off*sw, H*0.5);
+  c.rotate(17*Math.PI/180);
+  var g4=c.createLinearGradient(-sw/2,0,sw/2,0);
+  g4.addColorStop(0,   'rgba(255,255,255,0)');
+  g4.addColorStop(0.17,'rgba(255,255,255,0.04)');
+  g4.addColorStop(0.37,'rgba(255,255,255,0.19)');
+  g4.addColorStop(0.50,'rgba(255,255,255,0.31)');
+  g4.addColorStop(0.63,'rgba(255,255,255,0.15)');
+  g4.addColorStop(0.83,'rgba(255,255,255,0.03)');
+  g4.addColorStop(1,   'rgba(255,255,255,0)');
+  c.fillStyle=g4; c.fillRect(-sw/2,-H*1.2,sw,H*2.4);
 
   c.restore();
 }
 
 /* Fertiges Polaroid inkl. Papier und Beschriftung — nur zum Sichern */
-function paper(img,dateText,note,shiny){
+function paper(img,dateText,note,shiny,gl){
   var W=SIDE+PAD*2, H=PAD+SIDE+FOOT;
   var cv=document.createElement('canvas'); cv.width=W; cv.height=H;
   var c=cv.getContext('2d');
@@ -547,7 +612,8 @@ function paper(img,dateText,note,shiny){
     c.fillText(dateText,W/2,baseY,W*0.84);
   }
 
-  if(shiny) sheen(c,W,H);   /* liegt über allem — es ist die Oberfläche */
+  /* Liegt über allem — es ist die Oberfläche, nicht das Bild */
+  if(shiny) sheen(c,W,H, gl&&gl.gx, gl&&gl.gy, gl&&gl.sh);
   return cv;
 }
 
@@ -618,7 +684,8 @@ function tx(mode,fn){
     t.onerror=function(){ rej(t.error); };
   });
 }
-function save(rec){ return tx('readwrite',function(s){ return s.put({id:rec.id,ts:rec.ts,note:rec.note,blob:rec.blob,gloss:rec.gloss}); }).catch(function(){}); }
+function save(rec){ return tx('readwrite',function(s){ return s.put({id:rec.id,ts:rec.ts,note:rec.note,blob:rec.blob,
+  gloss:rec.gloss,gx:rec.gx,gy:rec.gy,sh:rec.sh}); }).catch(function(){}); }
 function drop(id){ return tx('readwrite',function(s){ return s.delete(id); }).catch(function(){}); }
 function loadAll(){ return tx('readonly',function(s){ return s.getAll(); }).catch(function(){ return []; }); }
 
@@ -705,8 +772,10 @@ function shoot(){
 
 function finish(cv){
   cv.toBlob(function(blob){
-    /* Der Glanz-Zustand beim Auslösen gehört ab jetzt zu diesem Bild */
-    var rec={ id:Date.now()+'-'+Math.random().toString(36).slice(2,7), ts:Date.now(), note:'', blob:blob, gloss:shine };
+    /* Der Glanz und der Stand des Lichts beim Auslösen gehören ab jetzt zu
+       diesem Bild — es behält den Reflex, den der Sucher gezeigt hat. */
+    var rec={ id:Date.now()+'-'+Math.random().toString(36).slice(2,7), ts:Date.now(), note:'', blob:blob,
+              gloss:shine, gx:liveGX, gy:liveGY, sh:liveSheen };
     rec.url=URL.createObjectURL(blob);
     shots.unshift(rec);
     save(rec);
@@ -719,6 +788,12 @@ function eject(rec){
   var box=$('eject');
   $('ejectImg').src=rec.url;
   $('ejectDate').textContent=fmtDate(rec.ts);
+
+  /* Das frische Blatt trägt den Reflex, den der Sucher im Moment des
+     Auslösens zeigte — ab hier bleibt er stehen. */
+  var eg=$('ejectGloss');
+  eg.hidden=!rec.gloss;
+  if(rec.gloss) eg.setAttribute('style',glossStyle(rec));
   $('ejectPola').classList.remove('developing');
   $('ejectDev').classList.remove('go');
   box.className='eject'; box.hidden=false;
@@ -746,11 +821,18 @@ function tally(){
 }
 
 /* ================= Galerie ================= */
+/* Ältere Bilder kennen die Lichtwerte noch nicht */
+function num(v,fallback){ return (typeof v==='number' && isFinite(v)) ? Math.round(v*10)/10 : fallback; }
+function glossStyle(rec){
+  return '--gx:'+num(rec.gx,50)+'%;--gy:'+num(rec.gy,14)+'%;--sheen:'+num(rec.sh,0)+'%';
+}
+
 function polaNode(rec){
   var d=document.createElement('div');
   d.className='pola';
+  var gl = rec.gloss ? '<span class="gloss" style="'+glossStyle(rec)+'"></span>' : '';
   d.innerHTML='<div class="win"><img alt="Sofortbild vom '+fmtDate(rec.ts)+'"></div>'+
-              '<div class="cap"><em></em></div><span class="gloss"></span>';
+              '<div class="cap"><em></em></div>'+gl;
   d.querySelector('img').src=rec.url;
   var em=d.querySelector('em');
   if(rec.note){ em.textContent=rec.note; }
@@ -792,6 +874,25 @@ function showOne(rec){
   var big=polaNode(rec);
   big.classList.add('tilt3d');
   one.appendChild(big);
+
+  /* Spiegelung gilt je Bild, nicht für alle zusammen */
+  var row=document.createElement('label');
+  row.className='check';
+  row.innerHTML='<input type="checkbox" id="g-'+rec.id+'"><span>Spiegelung</span>';
+  var cb=row.querySelector('input');
+  cb.checked=!!rec.gloss;
+  cb.onchange=function(){
+    rec.gloss=cb.checked;
+    if(rec.gloss && typeof rec.gx!=='number'){
+      rec.gx=liveGX; rec.gy=liveGY; rec.sh=liveSheen;
+    }
+    save(rec);
+    var fresh=polaNode(rec);
+    fresh.classList.add('tilt3d');
+    big.replaceWith(fresh);
+    big=fresh;
+  };
+  one.appendChild(row);
 
   var input=document.createElement('input');
   input.className='note-in'; input.id='note-'+rec.id; input.maxLength=42;
@@ -854,7 +955,7 @@ function keepIt(rec,btn){
 function renderSave(){
   if(!saveSrc || !saveRec) return;
   var stamp=fmtDate(saveRec.ts).replace(/\./g,'-');
-  paper(saveSrc,fmtDate(saveRec.ts),saveRec.note,saveShiny).toBlob(function(blob){
+  paper(saveSrc,fmtDate(saveRec.ts),saveRec.note,saveShiny,saveRec).toBlob(function(blob){
     if(saveURL) URL.revokeObjectURL(saveURL);
     saveURL=URL.createObjectURL(blob);
     saveFile=new File([blob],'sofortbild-'+stamp+(saveShiny?'-spiegelung':'')+'.jpg',{type:'image/jpeg'});
@@ -908,17 +1009,31 @@ function paintGloss(){
     : '<rect x="4" y="3.5" width="16" height="17" rx="1.5"/>';
 }
 
+/* Wo das Licht gerade steht. Diese Werte wandern mit dem Gerät und werden
+   beim Auslösen in das Bild übernommen. */
+var liveGX=50, liveGY=14, liveSheen=0;
+
+function applyLive(){
+  var r=document.documentElement.style;
+  r.setProperty('--gx',liveGX+'%');
+  r.setProperty('--gy',liveGY+'%');
+  r.setProperty('--sheen',liveSheen+'%');
+}
+
 function tilt(e){
   var g=e.gamma, b=e.beta, r=document.documentElement.style;
   if(g==null) return;
   g=Math.max(-40,Math.min(40,g));
-  r.setProperty('--sheen',(g/40*115)+'%');
-  r.setProperty('--tiltY',(g/40*9)+'deg');
+  liveSheen = g/40*115;
+  liveGX    = 50 - g/40*38;          // Licht wandert gegen die Neigung
+  r.setProperty('--tiltY',(g/40*14)+'deg');
   if(b!=null){
     /* Beim Halten liegt beta bei etwa 45° — das ist hier die Ruhelage */
     var bb=Math.max(-40,Math.min(40,b-45));
-    r.setProperty('--tiltX',(-bb/40*6)+'deg');
+    liveGY = 14 + bb/40*24;
+    r.setProperty('--tiltX',(-bb/40*10)+'deg');
   }
+  applyLive();
 }
 
 /* iOS verlangt für den Neigungssensor eine eigene Erlaubnis, und die darf nur
@@ -947,9 +1062,12 @@ if(!('ontouchstart' in window)){
     if(!shine || tiltOn) return;
     var x=e.clientX/window.innerWidth-0.5, y=e.clientY/window.innerHeight-0.5;
     var r=document.documentElement.style;
-    r.setProperty('--sheen',(x*230)+'%');
+    liveSheen = x*230;
+    liveGX    = 50 - x*76;
+    liveGY    = 14 + y*48;
     r.setProperty('--tiltY',(x*18)+'deg');
     r.setProperty('--tiltX',(-y*12)+'deg');
+    applyLive();
   });
 }
 
@@ -1004,6 +1122,7 @@ document.addEventListener('visibilitychange',function(){
 
 /* Start: Schriften laden, alte Bilder holen */
 (function boot(){
+  applyLive();
   if(document.fonts && document.fonts.load){
     document.fonts.load('400 24px Caveat').catch(function(){});
     document.fonts.load('600 24px Caveat').catch(function(){});
