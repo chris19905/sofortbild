@@ -1,7 +1,7 @@
 {
   "name": "Sofortbild",
   "short_name": "Sofortbild",
-  "description": "Kamera im Sofortbild-Stil: ein Ausloeser, kein Filter-Menue.",
+  "description": "Kamera im Sofortbild-Stil / Instant-camera style photos.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

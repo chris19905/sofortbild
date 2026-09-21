@@ -78,6 +78,13 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--film);outl
 }
 .icobtn:hover{color:var(--ink);background:rgba(237,231,216,.07);}
 .icobtn.on{color:var(--ink);}
+.icobtn.lang{
+  width:auto;min-width:30px;padding:0 7px;border-radius:3px;
+  font-family:var(--label);font-size:13px;font-weight:600;letter-spacing:.11em;
+  border:1px solid var(--line);
+}
+/* Auf sehr schmalen Geräten weicht der Zähler dem Sprachschalter */
+@media (max-width:359px){ .counter{display:none;} }
 .icobtn svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
 
 /* ---------- Sucher ---------- */
@@ -315,6 +322,11 @@ body.matt .tilt3d{transform:none;}
 .intro .strip i:nth-child(4){background:#F7941E}
 .intro .strip i:nth-child(5){background:#ED1C24}
 .err{color:#E8796C;font-size:14px;line-height:1.6;max-width:34ch;}
+.langpick{
+  font-family:var(--label);font-size:13px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--muted);padding:6px 4px;transition:color .15s;
+}
+.langpick:hover{color:var(--ink);}
 
 /* ---------- Sichern ---------- */
 .saveview{
@@ -385,10 +397,11 @@ body.matt .tilt3d{transform:none;}
   <div class="bar">
     <div class="wordmark">Sofortbild</div>
     <div class="counter" id="count">0 Bilder</div>
-    <button class="icobtn" id="gloss" aria-label="Spiegelung ausschalten" title="Spiegelung">
+    <button class="icobtn lang" id="lang" data-t-aria="aLang">DE</button>
+    <button class="icobtn" id="gloss" data-t-aria="aGlossOff">
       <svg viewBox="0 0 24 24" id="glsIcon"><rect x="4" y="3.5" width="16" height="17" rx="1.5"/><path d="M8.5 20.5 15 3.5M12.8 20.5 16.6 10.5"/></svg>
     </button>
-    <button class="icobtn" id="sound" aria-label="Ton ausschalten" title="Ton">
+    <button class="icobtn" id="sound" data-t-aria="aSoundOff">
       <svg viewBox="0 0 24 24" id="sndIcon"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg>
     </button>
   </div>
@@ -411,12 +424,12 @@ body.matt .tilt3d{transform:none;}
 
   <div class="deck">
     <div class="rainbow"><i></i><i></i><i></i><i></i><i></i></div>
-    <button class="side" id="flip" aria-label="Kamera wechseln">
+    <button class="side" id="flip" data-t-aria="aFlip">
       <svg viewBox="0 0 24 24"><path d="M20 9V7a2 2 0 0 0-2-2h-3l-1.5-2h-3L9 5H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h5"/><path d="M15 18h6m0 0-2.5-2.5M21 18l-2.5 2.5"/><circle cx="12" cy="12" r="3"/></svg>
-      <b>Wechseln</b>
+      <b data-t="flip">Wechseln</b>
     </button>
-    <button class="shutter" id="shot" aria-label="Foto aufnehmen"></button>
-    <button class="side" id="open" aria-label="Bilder ansehen">
+    <button class="shutter" id="shot" data-t-aria="aShoot"></button>
+    <button class="side" id="open" data-t-aria="aOpen">
       <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M3 15.5 8 11l4.5 4M14 13.5 16.5 11l4.5 4.5"/></svg>
       <b id="openLbl">Bilder</b>
     </button>
@@ -426,7 +439,7 @@ body.matt .tilt3d{transform:none;}
 <div class="sheet" id="sheet" hidden>
   <div class="bar">
     <div class="wordmark" id="sheetTitle">Bilder</div>
-    <button class="icobtn" id="back" aria-label="Zurück">
+    <button class="icobtn" id="back" data-t-aria="aBack">
       <svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
     </button>
   </div>
@@ -436,24 +449,24 @@ body.matt .tilt3d{transform:none;}
 
 <div class="saveview" id="save" hidden>
   <div class="bar">
-    <div class="wordmark">Sichern</div>
-    <button class="icobtn" id="saveBack" aria-label="Zurück">
+    <div class="wordmark" data-t="saveTitle">Sichern</div>
+    <button class="icobtn" id="saveBack" data-t-aria="aBack">
       <svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
     </button>
   </div>
   <div class="savebody">
-    <div class="seg" role="group" aria-label="Oberfläche">
-      <button id="segPlain" class="on">Sauber</button>
-      <button id="segShiny">Mit Spiegelung</button>
+    <div class="seg" role="group" data-t-aria="reflection">
+      <button id="segPlain" class="on" data-t="segClean">Sauber</button>
+      <button id="segShiny" data-t="segShiny">Mit Spiegelung</button>
     </div>
-    <div class="segnote" id="segNote" hidden>Beim Auslösen war die Spiegelung an — sie gehört zu diesem Bild.</div>
-    <img id="saveImg" class="tilt3d" alt="Fertiges Sofortbild – lange antippen zum Sichern">
+    <div class="segnote" id="segNote" data-t="segNote" hidden>Beim Auslösen war die Spiegelung an — sie gehört zu diesem Bild.</div>
+    <img id="saveImg" class="tilt3d" data-t-alt="altSave" alt="Fertiges Sofortbild – lange antippen zum Sichern">
     <div class="savehint">
-      Lange auf das Bild tippen → <b>„Zu Fotos hinzufügen“</b>
-      <span class="press">Das ist auf dem iPhone der zuverlässigste Weg.</span>
+      <span data-t-html="hold">Lange auf das Bild tippen → <b>„Zu Fotos hinzufügen“</b></span>
+      <span class="press" data-t="holdWhy">Das ist auf dem iPhone der zuverlässigste Weg.</span>
     </div>
     <div class="tools">
-      <button class="btn" id="saveShare" hidden>Teilen-Menü öffnen</button>
+      <button class="btn" id="saveShare" data-t="share" hidden>Teilen-Menü öffnen</button>
     </div>
   </div>
 </div>
@@ -461,8 +474,9 @@ body.matt .tilt3d{transform:none;}
 <div class="intro" id="intro">
   <div class="strip"><i></i><i></i><i></i><i></i><i></i></div>
   <div class="mark">Sofortbild</div>
-  <p>Ein Knopf, ein Bild. Kein Filter-Menü, keine Regler — es kommt raus, wie es rauskommt.</p>
-  <button class="btn key" id="go">Kamera einschalten</button>
+  <p data-t="tagline">Ein Knopf, ein Bild. Kein Filter-Menü, keine Regler — es kommt raus, wie es rauskommt.</p>
+  <button class="btn key" id="go" data-t="start">Kamera einschalten</button>
+  <button class="langpick" id="langIntro">English</button>
   <div class="err" id="err" hidden></div>
   <input type="file" id="pick" accept="image/*" hidden>
 </div>
@@ -476,6 +490,95 @@ var PAD  = Math.round(SIDE*4.5/79);    // Polaroid 600: 4.5 mm Rand bei 79 mm Bi
 var FOOT = Math.round(SIDE*23.5/79);   // unterer Rand 23.5 mm
 
 var $ = function(id){ return document.getElementById(id); };
+
+/* ================= Sprachen =================
+   „Sofortbild“ bleibt in beiden Sprachen stehen — es ist der Name, nicht
+   eine Beschriftung. */
+var STR={
+  de:{
+    count0:'0 Bilder', count1:'1 Bild', countN:'{n} Bilder',
+    photos:'Bilder', photosN:'Bilder {n}',
+    flip:'Wechseln',
+    aShoot:'Foto aufnehmen', aFlip:'Kamera wechseln', aOpen:'Bilder ansehen',
+    aBack:'Zurück', aSoundOff:'Ton ausschalten', aSoundOn:'Ton einschalten',
+    aGlossOff:'Spiegelung ausschalten', aGlossOn:'Spiegelung einschalten',
+    aLang:'Switch to English',
+    empty:'Noch keine Bilder. Zurück und auf den roten Knopf drücken.',
+    reflection:'Spiegelung',
+    caption:'Beschriften …',
+    save:'In Fotos sichern', discard:'Verwerfen', sure:'Wirklich?',
+    moment:'Einen Moment …',
+    saveTitle:'Sichern',
+    segClean:'Sauber', segShiny:'Mit Spiegelung',
+    segNote:'Beim Auslösen war die Spiegelung an — sie gehört zu diesem Bild.',
+    hold:'Lange auf das Bild tippen → <b>„Zu Fotos hinzufügen“</b>',
+    holdWhy:'Das ist auf dem iPhone der zuverlässigste Weg.',
+    share:'Teilen-Menü öffnen',
+    tagline:'Ein Knopf, ein Bild. Kein Filter-Menü, keine Regler — es kommt raus, wie es rauskommt.',
+    start:'Kamera einschalten', retry:'Nochmal versuchen',
+    pickInstead:'Stattdessen ein Bild auswählen',
+    altShot:'Sofortbild vom {d}',
+    altSave:'Fertiges Sofortbild – lange antippen zum Sichern',
+    errFramed:'Diese Seite läuft in einem eingebetteten Rahmen, der die Kamera gar nicht erst durchreicht. Deine Safari-Einstellung kann daran nichts ändern — die App muss als eigene Seite laufen.',
+    errHttp:'Die Seite wird nicht über HTTPS geladen. Ohne HTTPS gibt kein Browser die Kamera frei.',
+    errNone:'Dieser Browser stellt keinen Kamerazugriff bereit. Öffne die Seite in Safari.',
+    errDeniedFramed:'Der Zugriff wurde blockiert — das kommt vom Rahmen, in dem diese Seite läuft, nicht von deiner Safari-Einstellung.',
+    errDenied:'Der Kamerazugriff wurde abgelehnt. In Safari: auf das „aA“ links in der Adressleiste tippen → Website-Einstellungen → Kamera → Erlauben. Dann neu laden.',
+    errNotFound:'Es wurde keine Kamera gefunden.',
+    errBusy:'Die Kamera wird gerade von einer anderen App benutzt. Schließe sie und versuch es nochmal.',
+    errOther:'Die Kamera lässt sich nicht öffnen.',
+    techFramed:'im Rahmen', techOwn:'eigene Seite', techNoTls:'kein HTTPS'
+  },
+  en:{
+    count0:'0 photos', count1:'1 photo', countN:'{n} photos',
+    photos:'Photos', photosN:'Photos {n}',
+    flip:'Flip',
+    aShoot:'Take a photo', aFlip:'Switch camera', aOpen:'View photos',
+    aBack:'Back', aSoundOff:'Mute', aSoundOn:'Unmute',
+    aGlossOff:'Turn off reflections', aGlossOn:'Turn on reflections',
+    aLang:'Auf Deutsch umschalten',
+    empty:'No photos yet. Go back and press the red button.',
+    reflection:'Reflection',
+    caption:'Write on it …',
+    save:'Save to Photos', discard:'Discard', sure:'Sure?',
+    moment:'One moment …',
+    saveTitle:'Save',
+    segClean:'Clean', segShiny:'With reflection',
+    segNote:'Reflections were on when you took this — they belong to this photo.',
+    hold:'Press and hold the photo → <b>“Add to Photos”</b>',
+    holdWhy:'On iPhone this is the route that always works.',
+    share:'Open the share sheet',
+    tagline:'One button, one photo. No filter menu, no sliders — it comes out the way it comes out.',
+    start:'Turn on the camera', retry:'Try again',
+    pickInstead:'Choose a photo instead',
+    altShot:'Instant photo from {d}',
+    altSave:'Finished instant photo – press and hold to save',
+    errFramed:'This page runs inside an embedded frame that never passes the camera through. Your Safari setting cannot change that — the app has to run as a page of its own.',
+    errHttp:'This page is not loaded over HTTPS. Without HTTPS no browser will release the camera.',
+    errNone:'This browser offers no camera access. Open the page in Safari.',
+    errDeniedFramed:'Access was blocked — by the frame this page runs in, not by your Safari setting.',
+    errDenied:'Camera access was denied. In Safari: tap the “aA” at the left of the address bar → Website Settings → Camera → Allow. Then reload.',
+    errNotFound:'No camera was found.',
+    errBusy:'The camera is in use by another app. Close it and try again.',
+    errOther:'The camera cannot be opened.',
+    techFramed:'in a frame', techOwn:'own page', techNoTls:'no HTTPS'
+  }
+};
+
+var lang='de';
+try{
+  var saved=localStorage.getItem('sofortbild-lang');
+  lang = (saved==='de'||saved==='en') ? saved
+       : (/^de\b/i.test(navigator.language||'') ? 'de' : 'en');
+}catch(e){
+  lang = /^de\b/i.test(navigator.language||'') ? 'de' : 'en';
+}
+
+function t(key,vars){
+  var s=(STR[lang]&&STR[lang][key]) || STR.de[key] || key;
+  if(vars) for(var k in vars) s=s.split('{'+k+'}').join(vars[k]);
+  return s;
+}
 var stream=null, facing='environment', shots=[], busy=false, sound=true, store=null;
 
 /* ================= Filmkurven =================
@@ -729,21 +832,14 @@ function fail(e){
   var m;
 
   if(name==='KeinKamerazugriff'){
-    if(framed)
-      m='Diese Seite läuft in einem eingebetteten Rahmen, der die Kamera gar nicht erst durchreicht. Deine Safari-Einstellung kann daran nichts ändern — die App muss als eigene Seite laufen.';
-    else if(!secure)
-      m='Die Seite wird nicht über HTTPS geladen. Ohne HTTPS gibt kein Browser die Kamera frei.';
-    else
-      m='Dieser Browser stellt keinen Kamerazugriff bereit. Öffne die Seite in Safari.';
+    m = framed ? t('errFramed') : !secure ? t('errHttp') : t('errNone');
   }
   else if(name==='NotAllowedError'){
-    m = framed
-      ? 'Der Zugriff wurde blockiert — das kommt vom Rahmen, in dem diese Seite läuft, nicht von deiner Safari-Einstellung.'
-      : 'Der Kamerazugriff wurde abgelehnt. In Safari: auf das „aA“ links in der Adressleiste tippen → Website-Einstellungen → Kamera → Erlauben. Dann neu laden.';
+    m = framed ? t('errDeniedFramed') : t('errDenied');
   }
-  else if(name==='NotFoundError')    m='Es wurde keine Kamera gefunden.';
-  else if(name==='NotReadableError') m='Die Kamera wird gerade von einer anderen App benutzt. Schließe sie und versuch es nochmal.';
-  else                               m='Die Kamera lässt sich nicht öffnen.';
+  else if(name==='NotFoundError')    m=t('errNotFound');
+  else if(name==='NotReadableError') m=t('errBusy');
+  else                               m=t('errOther');
 
   var box=$('err');
   box.hidden=false;
@@ -755,21 +851,21 @@ function fail(e){
 
   var a=document.createElement('button');
   a.className='btn'; a.style.marginTop='14px'; a.style.display='block';
-  a.textContent='Stattdessen ein Bild auswählen';
+  a.textContent=t('pickInstead');
   a.onclick=function(){ $('pick').click(); };
   box.appendChild(a);
 
   /* Damit nicht geraten werden muss, woran es lag */
   var tech=document.createElement('div');
   tech.style.cssText='margin-top:12px;font-size:11.5px;letter-spacing:.06em;opacity:.55;color:var(--muted)';
-  tech.textContent=name+' · '+(framed?'im Rahmen':'eigene Seite')+' · '+(secure?'HTTPS':'kein HTTPS');
+  tech.textContent=name+' · '+t(framed?'techFramed':'techOwn')+' · '+(secure?'HTTPS':t('techNoTls'));
   box.appendChild(tech);
 }
 
 /* ================= Aufnahme ================= */
 function fmtDate(ts){
   var d=new Date(ts);
-  return d.toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
+  return d.toLocaleDateString(lang==='de'?'de-DE':'en-GB',{day:'2-digit',month:'2-digit',year:'numeric'});
 }
 
 function shoot(){
@@ -830,8 +926,8 @@ function eject(rec){
 
 function tally(){
   var n=shots.length;
-  $('count').textContent=n===1?'1 Bild':n+' Bilder';
-  $('openLbl').textContent=n?'Bilder '+n:'Bilder';
+  $('count').textContent = n===0 ? t('count0') : n===1 ? t('count1') : t('countN',{n:n});
+  $('openLbl').textContent = n ? t('photosN',{n:n}) : t('photos');
   $('open').disabled=!n;
 }
 
@@ -846,7 +942,7 @@ function polaNode(rec){
   var d=document.createElement('div');
   d.className='pola';
   var gl = rec.gloss ? '<span class="gloss" style="'+glossStyle(rec)+'"></span>' : '';
-  d.innerHTML='<div class="win"><img alt="Sofortbild vom '+fmtDate(rec.ts)+'"></div>'+
+  d.innerHTML='<div class="win"><img alt="'+t('altShot',{d:fmtDate(rec.ts)})+'"></div>'+
               '<div class="cap"><em></em></div>'+gl;
   d.querySelector('img').src=rec.url;
   var em=d.querySelector('em');
@@ -859,7 +955,7 @@ var GRID=$('grid');   /* festhalten: der Leer-Zustand nimmt es zwischendurch aus
 
 function showGrid(){
   $('one').hidden=true; $('scroll').hidden=false;
-  $('sheetTitle').textContent='Bilder';
+  $('sheetTitle').textContent=t('photos');
   $('scroll').innerHTML='';
   GRID.innerHTML='';
 
@@ -867,7 +963,7 @@ function showGrid(){
     var e=document.createElement('div');
     e.className='empty';
     e.innerHTML='<svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="3.5"/><path d="M9 6l1.5-2h3L15 6"/></svg>'+
-      '<div>Noch keine Bilder. Zurück und auf den roten Knopf drücken.</div>';
+      '<div>'+t('empty')+'</div>';
     $('scroll').appendChild(e);
     return;
   }
@@ -893,7 +989,7 @@ function showOne(rec){
   /* Spiegelung gilt je Bild, nicht für alle zusammen */
   var row=document.createElement('label');
   row.className='check';
-  row.innerHTML='<input type="checkbox" id="g-'+rec.id+'"><span>Spiegelung</span>';
+  row.innerHTML='<input type="checkbox" id="g-'+rec.id+'"><span>'+t('reflection')+'</span>';
   var cb=row.querySelector('input');
   cb.checked=!!rec.gloss;
   cb.onchange=function(){
@@ -911,7 +1007,7 @@ function showOne(rec){
 
   var input=document.createElement('input');
   input.className='note-in'; input.id='note-'+rec.id; input.maxLength=42;
-  input.placeholder='Beschriften …'; input.value=rec.note||'';
+  input.placeholder=t('caption'); input.value=rec.note||'';
   input.oninput=function(){
     rec.note=input.value.trim();
     var em=one.querySelector('.cap em');
@@ -924,14 +1020,14 @@ function showOne(rec){
   var tools=document.createElement('div'); tools.className='tools';
 
   var keep=document.createElement('button');
-  keep.className='btn key'; keep.textContent='In Fotos sichern';
+  keep.className='btn key'; keep.textContent=t('save');
   keep.onclick=function(){ keepIt(rec,keep); };
   tools.appendChild(keep);
 
   var del=document.createElement('button');
-  del.className='btn warn'; del.textContent='Verwerfen';
+  del.className='btn warn'; del.textContent=t('discard');
   del.onclick=function(){
-    if(del.dataset.armed!=='1'){ del.dataset.armed='1'; del.textContent='Wirklich?'; return; }
+    if(del.dataset.armed!=='1'){ del.dataset.armed='1'; del.textContent=t('sure'); return; }
     drop(rec.id);
     URL.revokeObjectURL(rec.url);
     shots=shots.filter(function(s){ return s.id!==rec.id; });
@@ -951,10 +1047,10 @@ var saveURL=null, saveFile=null, saveRec=null, saveSrc=null, saveShiny=false, sa
    <img> auf den Schirm, damit iOS „Zu Fotos hinzufügen“ anbietet — das Teilen-
    Menü ist in einer Homescreen-App nicht immer vollständig. */
 function keepIt(rec,btn){
-  btn.textContent='Einen Moment …';
+  btn.textContent=t('moment');
   var img=new Image();
   img.onload=function(){
-    btn.textContent='In Fotos sichern';
+    btn.textContent=t('save');
     saveRec=rec; saveSrc=img;
     /* War die Spiegelung beim Auslösen an, gehört sie zum Bild und bleibt */
     saveLocked=!!rec.gloss;
@@ -963,13 +1059,13 @@ function keepIt(rec,btn){
     renderSave();
     $('save').hidden=false;
   };
-  img.onerror=function(){ btn.textContent='In Fotos sichern'; };
+  img.onerror=function(){ btn.textContent=t('save'); };
   img.src=rec.url;
 }
 
 function renderSave(){
   if(!saveSrc || !saveRec) return;
-  var stamp=fmtDate(saveRec.ts).replace(/\./g,'-');
+  var stamp=fmtDate(saveRec.ts).replace(/[^0-9]+/g,'-');   /* trennt auch das en-GB-Format sauber */
   paper(saveSrc,fmtDate(saveRec.ts),saveRec.note,saveShiny,saveRec).toBlob(function(blob){
     if(saveURL) URL.revokeObjectURL(saveURL);
     saveURL=URL.createObjectURL(blob);
@@ -1018,11 +1114,48 @@ try{ shine = localStorage.getItem('sofortbild-gloss') !== '0'; }catch(e){}
 function paintGloss(){
   document.body.classList.toggle('matt',!shine);
   $('gloss').classList.toggle('on',shine);
-  $('gloss').setAttribute('aria-label', shine?'Spiegelung ausschalten':'Spiegelung einschalten');
+  $('gloss').setAttribute('aria-label', t(shine?'aGlossOff':'aGlossOn'));
   $('glsIcon').innerHTML = shine
     ? '<rect x="4" y="3.5" width="16" height="17" rx="1.5"/><path d="M8.5 20.5 15 3.5M12.8 20.5 16.6 10.5"/>'
     : '<rect x="4" y="3.5" width="16" height="17" rx="1.5"/>';
 }
+
+function paintSound(){
+  $('sound').setAttribute('aria-label', t(sound?'aSoundOff':'aSoundOn'));
+  $('sndIcon').innerHTML = sound
+    ? '<path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/>'
+    : '<path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M16 9.5l4 5m0-5-4 5"/>';
+}
+
+/* Setzt alle beschrifteten Stellen neu — auch die, die gerade offen sind */
+function applyLang(){
+  document.documentElement.lang=lang;
+  var i,els;
+  els=document.querySelectorAll('[data-t]');
+  for(i=0;i<els.length;i++) els[i].textContent=t(els[i].getAttribute('data-t'));
+  els=document.querySelectorAll('[data-t-html]');
+  for(i=0;i<els.length;i++) els[i].innerHTML=t(els[i].getAttribute('data-t-html'));
+  els=document.querySelectorAll('[data-t-aria]');
+  for(i=0;i<els.length;i++) els[i].setAttribute('aria-label',t(els[i].getAttribute('data-t-aria')));
+  els=document.querySelectorAll('[data-t-alt]');
+  for(i=0;i<els.length;i++) els[i].alt=t(els[i].getAttribute('data-t-alt'));
+
+  $('lang').textContent      = lang==='de' ? 'DE' : 'EN';
+  $('langIntro').textContent = lang==='de' ? 'English' : 'Deutsch';
+
+  tally(); paintGloss(); paintSound();
+
+  /* Eine offene Liste trägt noch die alten Daten im alten Format */
+  if(!$('sheet').hidden && $('one').hidden) showGrid();
+}
+
+function setLang(l){
+  lang=l;
+  try{ localStorage.setItem('sofortbild-lang',l); }catch(e){}
+  applyLang();
+}
+$('lang').onclick      = function(){ setLang(lang==='de'?'en':'de'); };
+$('langIntro').onclick = function(){ setLang(lang==='de'?'en':'de'); };
 
 /* Wo das Licht gerade steht. Diese Werte wandern mit dem Gerät und werden
    beim Auslösen in das Bild übernommen. */
@@ -1088,13 +1221,7 @@ if(!('ontouchstart' in window)){
 
 paintGloss();
 
-$('sound').onclick=function(){
-  sound=!sound;
-  $('sound').setAttribute('aria-label', sound?'Ton ausschalten':'Ton einschalten');
-  $('sndIcon').innerHTML = sound
-    ? '<path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/>'
-    : '<path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M16 9.5l4 5m0-5-4 5"/>';
-};
+$('sound').onclick=function(){ sound=!sound; paintSound(); };
 
 document.addEventListener('keydown',function(e){
   if(e.key===' '&&$('sheet').hidden&&$('intro').hidden&&$('save').hidden){ e.preventDefault(); shoot(); }
@@ -1118,14 +1245,14 @@ $('pick').onchange=function(){
 
 $('go').onclick=function(){
   $('err').hidden=true;
-  $('go').textContent='Einen Moment …';
+  $('go').textContent=t('moment');
   start().then(function(){
     $('intro').hidden=true;
     /* AudioContext braucht diese Geste, sonst bleibt der Auslöser stumm */
     try{ if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){}
     askTilt();
   }).catch(function(e){
-    $('go').textContent='Nochmal versuchen';
+    $('go').textContent=t('retry');
     fail(e);
   });
 };
@@ -1151,7 +1278,7 @@ document.addEventListener('visibilitychange',function(){
     shots=rows.map(function(r){ r.url=URL.createObjectURL(r.blob); return r; });
     tally();
   }).catch(function(){});
-  tally();
+  applyLang();
 })();
 
 })();

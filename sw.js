@@ -1,4 +1,4 @@
-var CACHE = 'sofortbild-v5';
+var CACHE = 'sofortbild-v6';
 var CORE = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon.svg'];
 
 self.addEventListener('install', function(e){
