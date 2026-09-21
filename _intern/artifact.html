@@ -221,6 +221,33 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--film);outl
 .intro .strip i:nth-child(5){background:#ED1C24}
 .err{color:#E8796C;font-size:14px;line-height:1.6;max-width:34ch;}
 
+/* ---------- Sichern ---------- */
+.saveview{
+  position:fixed;inset:0;z-index:40;background:rgba(9,8,6,.985);
+  display:flex;flex-direction:column;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+.saveview .bar{background:none;}
+.savebody{
+  flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:20px;padding:18px;
+}
+.saveview img{
+  width:min(100%,320px);display:block;border-radius:2px;
+  box-shadow:0 22px 44px -18px rgba(0,0,0,.85);
+  /* Ohne diese beiden Zeilen bietet iOS kein „Zu Fotos hinzufügen“ an */
+  -webkit-user-select:auto;user-select:auto;
+  -webkit-touch-callout:default;
+}
+.savehint{
+  color:var(--ink);font-size:14.5px;line-height:1.6;text-align:center;max-width:30ch;
+}
+.savehint b{font-weight:600;}
+.savehint .press{
+  display:block;margin-top:10px;color:var(--muted);font-size:13px;
+}
 .note-in{
   font-family:var(--hand);font-size:22px;text-align:center;color:var(--ink);
   background:rgba(237,231,216,.06);border:1px solid var(--line);border-radius:2px;
@@ -287,6 +314,25 @@ button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--film);outl
   </div>
   <div class="scroll" id="scroll"><div class="grid" id="grid"></div></div>
   <div class="one" id="one" hidden></div>
+</div>
+
+<div class="saveview" id="save" hidden>
+  <div class="bar">
+    <div class="wordmark">Sichern</div>
+    <button class="icobtn" id="saveBack" aria-label="Zurück">
+      <svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="savebody">
+    <img id="saveImg" alt="Fertiges Sofortbild – lange antippen zum Sichern">
+    <div class="savehint">
+      Lange auf das Bild tippen → <b>„Zu Fotos hinzufügen“</b>
+      <span class="press">Das ist auf dem iPhone der zuverlässigste Weg.</span>
+    </div>
+    <div class="tools">
+      <button class="btn" id="saveShare" hidden>Teilen-Menü öffnen</button>
+    </div>
+  </div>
 </div>
 
 <div class="intro" id="intro">
@@ -662,32 +708,37 @@ function showOne(rec){
   one.appendChild(hint);
 }
 
+var saveURL=null, saveFile=null;
+
+/* Fertiges Polaroid rendern und zum Sichern anbieten. Das Bild kommt als echtes
+   <img> auf den Schirm, damit iOS „Zu Fotos hinzufügen“ anbietet — das Teilen-
+   Menü ist in einer Homescreen-App nicht immer vollständig. */
 function keepIt(rec,btn){
+  btn.textContent='Einen Moment …';
   var img=new Image();
   img.onload=function(){
     var cv=paper(img,fmtDate(rec.ts),rec.note);
     cv.toBlob(function(blob){
-      var file=new File([blob],'sofortbild-'+rec.id+'.jpg',{type:'image/jpeg'});
-      var hint=$('hint-'+rec.id);
-      if(navigator.canShare && navigator.canShare({files:[file]})){
-        navigator.share({files:[file]}).then(function(){
-          btn.textContent='Gesichert';
-          setTimeout(function(){ btn.textContent='In Fotos sichern'; },2200);
-        }).catch(function(){});
-      }else{
-        // Ohne Teilen-Funktion: Bild groß anzeigen, langes Tippen sichert es
-        var url=URL.createObjectURL(blob);
-        var big=$('one').querySelector('.pola');
-        var shown=new Image();
-        shown.src=url; shown.style.width='100%'; shown.style.display='block';
-        shown.alt='Fertiges Sofortbild — lange darauf tippen zum Sichern';
-        big.replaceWith(shown);
-        if(hint) hint.textContent='Lange auf das Bild tippen → „Bild sichern“. (Dein Browser gibt das Teilen-Menü nicht frei.)';
-      }
+      btn.textContent='In Fotos sichern';
+      if(saveURL) URL.revokeObjectURL(saveURL);
+      saveURL=URL.createObjectURL(blob);
+      saveFile=new File([blob],'sofortbild-'+fmtDate(rec.ts).replace(/\./g,'-')+'.jpg',{type:'image/jpeg'});
+
+      $('saveImg').src=saveURL;
+      $('saveShare').hidden=!(navigator.canShare && navigator.canShare({files:[saveFile]}));
+      $('save').hidden=false;
     },'image/jpeg',0.92);
   };
+  img.onerror=function(){ btn.textContent='In Fotos sichern'; };
   img.src=rec.url;
 }
+
+$('saveBack').onclick=function(){ $('save').hidden=true; };
+
+$('saveShare').onclick=function(){
+  if(!saveFile) return;
+  navigator.share({files:[saveFile]}).catch(function(){});
+};
 
 /* ================= Verdrahtung ================= */
 $('shot').onclick=shoot;
@@ -712,8 +763,11 @@ $('sound').onclick=function(){
 };
 
 document.addEventListener('keydown',function(e){
-  if(e.key===' '&&$('sheet').hidden&&$('intro').hidden){ e.preventDefault(); shoot(); }
-  if(e.key==='Escape'&&!$('sheet').hidden) $('back').click();
+  if(e.key===' '&&$('sheet').hidden&&$('intro').hidden&&$('save').hidden){ e.preventDefault(); shoot(); }
+  if(e.key==='Escape'){
+    if(!$('save').hidden) $('saveBack').click();
+    else if(!$('sheet').hidden) $('back').click();
+  }
 });
 
 $('pick').onchange=function(){
