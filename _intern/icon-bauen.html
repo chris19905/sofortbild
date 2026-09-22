@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><title>Icon bauen</title>
+<style>
+body{margin:0;background:#17150F;color:#EDE7D8;font:15px system-ui;
+     min-height:100vh;display:flex;flex-direction:column;align-items:center;
+     justify-content:center;gap:22px;padding:30px;text-align:center}
+canvas{border-radius:6px;box-shadow:0 12px 30px -12px #000}
+button{font:inherit;font-weight:600;padding:12px 24px;border:0;border-radius:4px;
+       background:#F4F0E4;color:#1A1712;cursor:pointer}
+button:hover{background:#fff}
+p{max-width:40ch;line-height:1.6;color:#8A8272;margin:0}
+</style></head><body>
+
+<canvas id="c" width="512" height="512"></canvas>
+<p>Das ist das App-Icon in 512&nbsp;&times;&nbsp;512. Speichere es als
+<b style="color:#EDE7D8">icon-512.png</b> in den Ordner <b style="color:#EDE7D8">sofortbild</b>.</p>
+<button id="dl">icon-512.png herunterladen</button>
+
+<script>
+var S=512, c=document.getElementById('c'), x=c.getContext('2d');
+x.fillStyle='#17150F'; x.fillRect(0,0,S,S);
+// 50 % Breite: bleibt in der Safe Zone, damit Android rund beschneiden darf
+var W=Math.round(S*0.50), H=Math.round(W*107/88);
+var px=Math.round((S-W)/2), py=Math.round((S-H)/2);
+x.fillStyle='#F4F0E4'; x.fillRect(px,py,W,H);
+var m=Math.round(W*4.5/88), iw=W-2*m;
+var cols=['#1B75BB','#00A550','#FFF200','#F7941E','#ED1C24'], bh=iw/5;
+for(var i=0;i<5;i++){
+  x.fillStyle=cols[i];
+  x.fillRect(px+m, Math.round(py+m+i*bh), iw, Math.ceil(bh)+1);
+}
+document.getElementById('dl').onclick=function(){
+  var a=document.createElement('a');
+  a.download='icon-512.png';
+  a.href=c.toDataURL('image/png');
+  a.click();
+};
+</script>
+</body></html>

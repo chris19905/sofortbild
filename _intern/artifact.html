@@ -309,6 +309,49 @@ body.matt .tilt3d{transform:none;}
 .intro .strip i:nth-child(4){background:#F7941E}
 .intro .strip i:nth-child(5){background:#ED1C24}
 .err{color:#E8796C;font-size:14px;line-height:1.6;max-width:34ch;}
+/* ---------- Freischaltung ---------- */
+.lock{
+  position:fixed;inset:0;z-index:50;background:rgba(9,8,6,.94);
+  display:grid;place-items:center;padding:24px;
+}
+.lockbox{
+  position:relative;background:var(--panel);border:1px solid var(--line);
+  border-radius:4px;padding:30px 26px 26px;max-width:34ch;text-align:center;
+  display:flex;flex-direction:column;align-items:center;gap:15px;
+}
+.lockbox .strip{display:flex;width:84px;height:4px;}
+.lockbox .strip i{flex:1;}
+.lockbox .strip i:nth-child(1){background:#1B75BB}
+.lockbox .strip i:nth-child(2){background:#00A550}
+.lockbox .strip i:nth-child(3){background:#FFF200}
+.lockbox .strip i:nth-child(4){background:#F7941E}
+.lockbox .strip i:nth-child(5){background:#ED1C24}
+.lockbox h2{
+  margin:0;font-family:var(--label);font-weight:600;font-size:23px;
+  letter-spacing:.14em;text-transform:uppercase;
+}
+.lockbox p{margin:0;font-size:14.5px;line-height:1.62;color:var(--ink);}
+.lockbox p.fine{font-size:13px;color:var(--muted);}
+.linky{
+  font-size:13.5px;color:var(--muted);text-decoration:underline;
+  text-underline-offset:3px;transition:color .15s;
+}
+.linky:hover{color:var(--ink);}
+.linky.close{
+  position:absolute;top:8px;right:10px;font-size:22px;text-decoration:none;
+  width:32px;height:32px;line-height:1;
+}
+.codebox{display:flex;gap:8px;width:100%;}
+.codebox input{
+  flex:1;min-width:0;font-family:var(--label);font-size:15px;letter-spacing:.1em;
+  text-align:center;text-transform:uppercase;color:var(--ink);
+  background:rgba(237,231,216,.06);border:1px solid var(--line);border-radius:2px;
+  padding:10px 8px;
+}
+.codebox input:focus{outline:none;border-color:rgba(237,231,216,.36);}
+.codemsg{font-size:13px;line-height:1.5;color:#E8796C;}
+.codemsg.good{color:#7FCB94;}
+
 .langpick{
   font-family:var(--label);font-size:13px;letter-spacing:.16em;text-transform:uppercase;
   color:var(--muted);padding:6px 4px;transition:color .15s;
@@ -456,6 +499,24 @@ body.matt .tilt3d{transform:none;}
   </div>
 </div>
 
+<div class="lock" id="lock" hidden>
+  <div class="lockbox">
+    <div class="strip"><i></i><i></i><i></i><i></i><i></i></div>
+    <h2 id="lockTitle">Der Film ist voll</h2>
+    <p id="lockBody"></p>
+    <p class="fine" id="lockKeep"></p>
+    <button class="btn key" id="buy"></button>
+    <button class="linky" id="codeToggle" data-t="haveCode">Ich habe schon einen Code</button>
+    <div class="codebox" id="codeBox" hidden>
+      <input type="text" id="codeIn" autocomplete="off" autocapitalize="characters"
+             spellcheck="false" maxlength="19" placeholder="SOFO-XXXX-XXXX-XXXX">
+      <button class="btn" id="codeGo" data-t="codeGo">Einlösen</button>
+    </div>
+    <div class="codemsg" id="codeMsg" hidden></div>
+    <button class="linky close" id="lockClose" data-t-aria="aBack">&times;</button>
+  </div>
+</div>
+
 <div class="intro" id="intro">
   <div class="strip"><i></i><i></i><i></i><i></i><i></i></div>
   <div class="mark">Sofortbild</div>
@@ -512,7 +573,18 @@ var STR={
     errNotFound:'Es wurde keine Kamera gefunden.',
     errBusy:'Die Kamera wird gerade von einer anderen App benutzt. Schließe sie und versuch es nochmal.',
     errOther:'Die Kamera lässt sich nicht öffnen.',
-    techFramed:'im Rahmen', techOwn:'eigene Seite', techNoTls:'kein HTTPS'
+    techFramed:'im Rahmen', techOwn:'eigene Seite', techNoTls:'kein HTTPS',
+    left:'Noch {n}', lastOne:'Letztes Bild',
+    lockTitle:'Der Film ist voll',
+    lockBody:'Du hast deine {n} Bilder gemacht. Einmalig freischalten, dann läuft es unbegrenzt weiter — kein Abo, keine weiteren Kosten.',
+    lockKeep:'Deine Bilder bleiben erhalten und lassen sich weiterhin sichern.',
+    buy:'Freischalten für {p}',
+    haveCode:'Ich habe schon einen Code',
+    codePh:'Freischaltcode',
+    codeGo:'Einlösen',
+    codeBad:'Dieser Code stimmt nicht. Achte auf die Bindestriche.',
+    codeOk:'Freigeschaltet. Viel Spaß damit.',
+    unlocked:'Freigeschaltet'
   },
   en:{
     count0:'0 photos', count1:'1 photo', countN:'{n} photos',
@@ -546,7 +618,18 @@ var STR={
     errNotFound:'No camera was found.',
     errBusy:'The camera is in use by another app. Close it and try again.',
     errOther:'The camera cannot be opened.',
-    techFramed:'in a frame', techOwn:'own page', techNoTls:'no HTTPS'
+    techFramed:'in a frame', techOwn:'own page', techNoTls:'no HTTPS',
+    left:'{n} left', lastOne:'Last photo',
+    lockTitle:'Out of film',
+    lockBody:'You have used your {n} photos. Unlock once and it keeps going — no subscription, nothing further to pay.',
+    lockKeep:'Your photos stay where they are and can still be saved.',
+    buy:'Unlock for {p}',
+    haveCode:'I already have a code',
+    codePh:'Unlock code',
+    codeGo:'Redeem',
+    codeBad:'That code is not right. Mind the hyphens.',
+    codeOk:'Unlocked. Enjoy.',
+    unlocked:'Unlocked'
   }
 };
 
@@ -563,6 +646,38 @@ function t(key,vars){
   var s=(STR[lang]&&STR[lang][key]) || STR.de[key] || key;
   if(vars) for(var k in vars) s=s.split('{'+k+'}').join(vars[k]);
   return s;
+}
+
+/* ================= Freischaltung =================
+   Der Schlüssel wird hier im Gerät geprüft, nicht auf einem Server. Wer den
+   Prüfweg im Quelltext nachbaut, kommt daran vorbei — für den Zweck reicht es,
+   und es funktioniert ohne Netz. */
+var FREE=20;
+var PRICE={ de:'3,99 €', en:'€3.99' };
+var taken=0, paid=false;
+
+function keyOk(k){
+  if(!k) return false;
+  k=String(k).toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if(k.length!==16 || k.slice(0,4)!=='SOFO') return false;
+  var body=k.slice(4,13), h=0, i;
+  for(i=0;i<body.length;i++) h=(h*31+body.charCodeAt(i))%46656;
+  var chk=h.toString(36).toUpperCase();
+  while(chk.length<3) chk='0'+chk;
+  return chk===k.slice(13);
+}
+
+try{
+  taken = parseInt(localStorage.getItem('sofortbild-taken')||'0',10) || 0;
+  paid  = keyOk(localStorage.getItem('sofortbild-key')||'');
+}catch(e){}
+
+function shotsLeft(){ return paid ? Infinity : Math.max(0, FREE-taken); }
+
+function countShot(){
+  if(paid) return;
+  taken++;
+  try{ localStorage.setItem('sofortbild-taken',String(taken)); }catch(e){}
 }
 var stream=null, facing='environment', shots=[], busy=false, sound=true, store=null;
 
@@ -855,6 +970,7 @@ function fmtDate(ts){
 
 function shoot(){
   if(busy) return;
+  if(shotsLeft()<=0){ showLock(); return; }
   var v=$('cam');
   if(!stream || !v.videoWidth){ $('pick').click(); return; }   /* ohne Kamera: Bild aus der Galerie */
   busy=true; $('shot').disabled=true;
@@ -875,6 +991,7 @@ function finish(cv){
     rec.url=URL.createObjectURL(blob);
     shots.unshift(rec);
     save(rec);
+    countShot();
     tally();
     eject(rec);
   },'image/jpeg',0.90);
@@ -910,8 +1027,12 @@ function eject(rec){
 }
 
 function tally(){
-  var n=shots.length;
-  $('count').textContent = n===0 ? t('count0') : n===1 ? t('count1') : t('countN',{n:n});
+  var n=shots.length, rest=shotsLeft();
+  /* Wenn der Film zur Neige geht, zählt der Kopf das statt der Bilder */
+  if(!paid && rest<=5)
+    $('count').textContent = rest===1 ? t('lastOne') : t('left',{n:rest});
+  else
+    $('count').textContent = n===0 ? t('count0') : n===1 ? t('count1') : t('countN',{n:n});
   $('openLbl').textContent = n ? t('photosN',{n:n}) : t('photos');
   $('open').disabled=!n;
 }
@@ -1128,11 +1249,50 @@ function applyLang(){
   $('lang').textContent      = lang==='de' ? 'DE' : 'EN';
   $('langIntro').textContent = lang==='de' ? 'English' : 'Deutsch';
 
-  tally(); paintGloss(); paintSound();
+  tally(); paintGloss(); paintSound(); paintLock();
 
   /* Eine offene Liste trägt noch die alten Daten im alten Format */
   if(!$('sheet').hidden && $('one').hidden) showGrid();
 }
+
+/* Trage hier die Verkaufsseite ein, sobald es sie gibt. Solange sie leer ist,
+   wird nur die Code-Eingabe gezeigt und kein Kaufknopf versprochen. */
+var BUY_URL='';
+
+function paintLock(){
+  $('lockTitle').textContent = t('lockTitle');
+  $('lockBody').textContent  = t('lockBody',{n:FREE});
+  $('lockKeep').textContent  = t('lockKeep');
+  $('buy').textContent       = t('buy',{p:PRICE[lang]||PRICE.de});
+  $('buy').hidden            = !BUY_URL;
+  if(!BUY_URL){ $('codeBox').hidden=false; $('codeToggle').hidden=true; }
+}
+
+function showLock(){
+  paintLock();
+  $('codeMsg').hidden=true;
+  $('lock').hidden=false;
+}
+
+$('buy').onclick=function(){ if(BUY_URL) window.open(BUY_URL,'_blank','noopener'); };
+$('lockClose').onclick=function(){ $('lock').hidden=true; };
+$('codeToggle').onclick=function(){
+  $('codeBox').hidden=false; $('codeToggle').hidden=true; $('codeIn').focus();
+};
+
+$('codeGo').onclick=function(){
+  var msg=$('codeMsg'), v=$('codeIn').value;
+  if(keyOk(v)){
+    paid=true;
+    try{ localStorage.setItem('sofortbild-key',v); }catch(e){}
+    msg.textContent=t('codeOk'); msg.className='codemsg good'; msg.hidden=false;
+    tally();
+    setTimeout(function(){ $('lock').hidden=true; },1500);
+  }else{
+    msg.textContent=t('codeBad'); msg.className='codemsg'; msg.hidden=false;
+  }
+};
+$('codeIn').addEventListener('keydown',function(e){ if(e.key==='Enter') $('codeGo').click(); });
 
 function setLang(l){
   lang=l;
